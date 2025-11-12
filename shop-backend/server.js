@@ -1,19 +1,16 @@
-// server.js (updated)
+// server.js - manual email only, no cron, use env vars for credentials
 const express = require("express");
 const fs = require("fs");
 const nodemailer = require("nodemailer");
-const cron = require("node-cron");
 const cors = require("cors");
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(cors());
 
 const DATA_FILE = "salesData.json";
-
-// Ensure data file exists
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify({ dailySales: {} }, null, 2));
 }
@@ -25,76 +22,45 @@ function getData() {
   return JSON.parse(fs.readFileSync(DATA_FILE));
 }
 
-// ---- EMAIL SETUP ----
-// IMPORTANT: keep credentials secret. Use env vars in production.
+// -- EMAIL TRANSPORTER: use environment variables --
+const EMAIL_USER = process.env.EMAIL_USER || "REPLACE_WITH_ENV";
+const EMAIL_PASS = process.env.EMAIL_PASS || "REPLACE_WITH_ENV";
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "jaishree3025@gmail.com",
-    pass: "jpzy piyo sgbu qcup", // app password
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
   },
 });
 
-// verify transporter at startup so we get clear error if creds are wrong
+// verify transporter so we get an immediate, clear message at startup
 transporter.verify((err, success) => {
   if (err) {
-    console.error("🔴 Nodemailer verify failed — check credentials/network:");
+    console.error("🔴 Nodemailer verify failed — check EMAIL_USER/EMAIL_PASS & network:");
     console.error(err && err.message ? err.message : err);
   } else {
     console.log("🟢 Nodemailer ready to send messages");
   }
 });
 
-// ---- Helper: build HTML for a date report ----
-function buildReportHtml(dateISO, todaySales) {
+// helper to build the HTML for the report
+function buildReportHtml(dateISO, salesObj) {
   let html = `<h2>Daily Sales Report - ${dateISO}</h2>`;
   html += `<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">`;
   html += `<tr style="background-color:#e6f0ff"><th>Product</th><th>MRP Sales</th><th>Bar Sales</th></tr>`;
   let total = 0;
-  for (const [product, values] of Object.entries(todaySales)) {
+  for (const [product, values] of Object.entries(salesObj || {})) {
     html += `<tr><td>${product}</td><td>${values.mrp || 0}</td><td>${values.bar || 0}</td></tr>`;
     total += (values.mrp || 0) + (values.bar || 0);
   }
-  html += `</table><p><b>Total Sales:</b> ₹${total}</p>`;
+  html += `</table><p><b>Total Sales (units):</b> ${total}</p>`;
   return { html, total };
-}
-
-// Function to attempt sending email for a specific ISO date (YYYY-MM-DD)
-function sendDailyReportFor(dateISO) {
-  const data = getData();
-  const daySales = data.dailySales[dateISO];
-
-  if (!daySales) {
-    const msg = `No sales data for ${dateISO}.`;
-    console.log("ℹ️", msg);
-    // Return resolved promise so caller can handle
-    return Promise.resolve({ success: false, message: msg });
-  }
-
-  const { html, total } = buildReportHtml(dateISO, daySales);
-
-  const mailOptions = {
-    from: "jaishree3025@gmail.com",
-    to: "jaishree3025@gmail.com", // change for production if needed
-    subject: `Daily Sales Report - ${dateISO} (Total ₹${total})`,
-    html,
-  };
-
-  return new Promise((resolve) => {
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("❌ Error sending email:", error && error.message ? error.message : error);
-        return resolve({ success: false, message: error && error.message ? error.message : String(error) });
-      }
-      console.log("✅ Daily sales email sent:", info && info.response ? info.response : info);
-      return resolve({ success: true, message: "Email sent", info });
-    });
-  });
 }
 
 // ---- API ROUTES ----
 
-// Save today's sales (your existing route)
+// Save daily summary
 app.post("/api/sales", (req, res) => {
   try {
     const { date, sales } = req.body;
@@ -110,6 +76,7 @@ app.post("/api/sales", (req, res) => {
   }
 });
 
+// Get all sales
 app.get("/api/sales", (req, res) => {
   try {
     const data = getData();
@@ -120,37 +87,44 @@ app.get("/api/sales", (req, res) => {
   }
 });
 
-// Endpoint to manually trigger sending email for a specific date (optional date in body)
+// Manual send email endpoint - POST /api/send-email { date: "YYYY-MM-DD" (optional) }
 app.post("/api/send-email", async (req, res) => {
   try {
-    // Accept either { date: "YYYY-MM-DD" } or empty (then use today's date)
     const reqDate = req.body && req.body.date ? req.body.date : null;
     const dateISO = reqDate || new Date().toISOString().split("T")[0];
     console.log(`📨 Received send-email request for: ${dateISO}`);
 
-    const result = await sendDailyReportFor(dateISO);
-    if (result.success) return res.json({ message: "✅ Email sent successfully!", info: result.info || null });
-    // if not success, give client useful message
-    return res.status(200).json({ message: `❌ ${result.message}` });
+    const data = getData();
+    const daySales = data.dailySales[dateISO];
+    if (!daySales) {
+      const msg = `No sales data for ${dateISO}`;
+      console.log("ℹ️", msg);
+      return res.status(200).json({ success: false, message: msg });
+    }
+
+    const { html, total } = buildReportHtml(dateISO, daySales);
+    const mailOptions = {
+      from: EMAIL_USER,
+      to: EMAIL_USER, // change to another address if desired
+      subject: `Daily Sales Report - ${dateISO} (Total units: ${total})`,
+      html,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("❌ Error sending email:", error && error.message ? error.message : error);
+        return res.status(500).json({ success: false, message: "Failed to send email", error: error && error.message ? error.message : String(error) });
+      }
+      console.log("✅ Email sent:", info && info.response ? info.response : info);
+      return res.json({ success: true, message: "Email sent", info: info || null });
+    });
   } catch (err) {
     console.error("Unexpected error in /api/send-email:", err);
-    return res.status(500).json({ error: "Server error while sending email", details: (err && err.message) ? err.message : err });
+    return res.status(500).json({ success: false, message: "Server error while sending email", error: err && err.message ? err.message : String(err) });
   }
 });
 
-// ---- CRON JOB ----
-// Runs every day at 3:00 AM India time
-cron.schedule("0 3 * * *", () => {
-  const todayISO = new Date().toISOString().split("T")[0];
-  console.log("🕒 Cron job triggered for date:", todayISO);
-  sendDailyReportFor(todayISO).then(r => {
-    if (!r.success) console.log("Cron: email not sent:", r.message);
-  });
-}, {
-  timezone: "Asia/Kolkata"
-});
-
-// Start server
+// ---- START SERVER ----
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
