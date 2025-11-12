@@ -36,8 +36,8 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      overflow-x: auto;
-      white-space: nowrap;
+      overflow-x: auto;         /* allow horizontal scroll if narrow */
+      white-space: nowrap;      /* keep links horizontal */
       -webkit-overflow-scrolling: touch;
       position: sticky;
       top: 0;
@@ -77,7 +77,7 @@
 
     table {
       width: 100%;
-      min-width: 760px; /* keep columns aligned like desktop, causes horizontal scroll on narrow screens */
+      min-width: 720px; /* keep columns aligned like desktop, causes horizontal scroll on narrow screens */
       border-collapse: collapse;
       background: var(--card);
       border-radius: var(--radius);
@@ -108,6 +108,7 @@
     input[type="number"] {
       -moz-appearance: textfield;
     }
+    /* hide arrows in some browsers */
     input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
       -webkit-appearance: none;
       margin: 0;
@@ -129,7 +130,7 @@
       background: rgba(0,0,0,0.45); align-items:center; justify-content:center; padding:12px; }
     .modal-content {
       width: 100%;
-      max-width: 900px;
+      max-width: 820px;
       max-height: 92vh;
       overflow:auto;
       background: #fff;
@@ -148,13 +149,14 @@
     @media (max-width: 720px) {
       :root { --text-size:14px; }
       body { padding-bottom:12px; }
-      table { min-width: 640px; }
+      table { min-width: 640px; } /* slightly smaller min width for phones */
       th, td { padding: 8px 10px; }
       input[type="number"], button, select { padding: 10px; font-size: 16px; border-radius: 10px; }
       button.small { padding: 10px 12px; font-size: 15px; }
       nav a { padding: 8px 10px; font-size: 15px; }
     }
 
+    /* make everything a bit more compact on very small devices but keep horizontal layout */
     @media (max-width: 420px) {
       table { min-width: 600px; }
       th, td { padding: 7px 8px; font-size: 14px; }
@@ -185,11 +187,10 @@
           <tr>
             <th>Items</th>
             <th>Opening Balance</th>
-            <th>MRP Price</th>
-            <th>Bar Price</th>
+            <th>Amt per Quantity</th>
             <th>Total</th>
-            <th>Closing</th>
-            <th>Sold (MRP)</th>
+            <th>Closing Balance</th>
+            <th>Sales</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -208,9 +209,8 @@
           <tr>
             <th>Items</th>
             <th>Stock</th>
-            <th>Bar Price</th>
-            <th>Sold (Bar)</th>
-            <th>Action</th>
+            <th>Amt per Quantity</th>
+            <th>Sales</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -223,7 +223,7 @@
   <div id="dashboard" class="container">
     <h2>Daily Sales Report</h2>
     <div id="dailySales" class="table-wrap"></div>
-    <p class="info">Each date has View / Edit / Close Bill. Click the date to view or add sold items.</p>
+    <p class="info">Each date has Edit and Close Bill buttons. Click the date to view or add sold items.</p>
   </div>
 
   <!-- Modal -->
@@ -265,371 +265,343 @@
     </div>
   </div>
 
-<script>
-  // --------- Config ----------
-  const API_BASE = (function(){
-    if(location.protocol === "file:") return "http://localhost:5000/api";
-    return `http://${location.hostname}:5000/api`;
-  })();
+  <script>
+    // ---------- Config ----------
+    const API_BASE = "http://localhost:5000/api";
+    const defaultItems = [
+      "2 Litre Water","1 Liter water","500 ML water","soda 750ml",
+      "600ml cool drinks","250ml cool drinks","5rs glass","3rs glass",
+      "mixer","cover big","cover medium","cover small"
+    ];
 
-  const defaultItems = [
-    "2 Litre Water","1 Liter water","500 ML water","soda 750ml",
-    "600ml cool drinks","250ml cool drinks","5rs glass","3rs glass",
-    "mixer","cover big","cover medium","cover small"
-  ];
+    // ---------- State ----------
+    let mrpData = [], barData = [], dailySales = {};
+    let currentModalDate = null;
 
-  // --------- State ----------
-  let mrpData = [], barData = [], dailySales = {}; // dailySales[ISO] = [ {name, qty, price, section} ]
-  let currentModalDate = null;
-
-  // --------- Helpers ----------
-  function toISO(dateLike){
-    if(!dateLike) return new Date().toISOString().split('T')[0];
-    if(typeof dateLike === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateLike)) return dateLike;
-    const d = new Date(dateLike);
-    if(isNaN(d)) return new Date().toISOString().split('T')[0];
-    return d.toISOString().split('T')[0];
-  }
-  function isoToDisplay(iso){
-    const d = new Date(iso + "T00:00:00");
-    return d.toLocaleDateString();
-  }
-  function normalizeDailySales(raw){
-    const out = {};
-    Object.keys(raw || {}).forEach(k=>{
-      const iso = toISO(k);
-      out[iso] = raw[k];
-    });
-    return out;
-  }
-
-  // --------- Storage ----------
-  function saveData(){
-    localStorage.setItem("mrpData", JSON.stringify(mrpData));
-    localStorage.setItem("barData", JSON.stringify(barData));
-    localStorage.setItem("dailySales", JSON.stringify(dailySales));
-  }
-  function loadData(){
-    const mrp = localStorage.getItem("mrpData");
-    const bar = localStorage.getItem("barData");
-    const sales = localStorage.getItem("dailySales");
-    if(mrp) mrpData = JSON.parse(mrp);
-    if(bar) barData = JSON.parse(bar);
-    if(sales){
-      try { dailySales = normalizeDailySales(JSON.parse(sales)); }
-      catch(e){ dailySales = {}; }
+    // ---------- Helpers ----------
+    function toISO(dateLike){
+      if(!dateLike) return new Date().toISOString().split('T')[0];
+      if(typeof dateLike === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateLike)) return dateLike;
+      const d = new Date(dateLike);
+      if(isNaN(d)) return new Date().toISOString().split('T')[0];
+      return d.toISOString().split('T')[0];
     }
-    if(!mrpData.length) initializeItems();
-    renderMRP(); renderBar(); renderDailySales();
-  }
-  function initializeItems(){
-    mrpData = defaultItems.map(name => ({ name, opening:0, mrpPrice:0, barPrice:0, total:0, transferred:0, sales:0 }));
-    barData = [];
-    saveData();
-  }
-
-  // --------- MRP & Bar UI & logic ----------
-  function showSection(section,e){
-    document.querySelectorAll(".container").forEach(div=>div.classList.remove("active-section"));
-    document.getElementById(section).classList.add("active-section");
-    document.querySelectorAll("nav a").forEach(a=>a.classList.remove("active"));
-    if(e && e.currentTarget) e.currentTarget.classList.add("active");
-  }
-
-  function renderMRP(){
-    const tbody = document.querySelector("#mrpTable tbody"); tbody.innerHTML = "";
-    mrpData.forEach((item,i)=>{
-      item.total = item.opening;
-      const closing = item.total - (item.sales || 0) - (item.transferred || 0);
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${item.name}</td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.opening}" onchange="updateOpening(${i}, this.value)"></td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.mrpPrice}" onchange="updateMRPPrice(${i}, this.value)"></td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.barPrice}" onchange="updateBarPriceInMRP(${i}, this.value)"></td>
-        <td>${item.total}</td>
-        <td>${closing}</td>
-        <td>${item.sales || 0}</td>
-        <td>
-          <button class="small" onclick="transferToBar(${i})">Transfer to Bar (Sale)</button>
-          <button class="small" style="margin-left:6px" onclick="sellFromMRP(${i})">Sell (MRP)</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function updateOpening(index, val){ mrpData[index].opening = parseInt(val)||0; saveData(); renderMRP(); }
-  function updateMRPPrice(index, val){ mrpData[index].mrpPrice = parseFloat(val)||0; saveData(); renderMRP(); }
-  function updateBarPriceInMRP(index, val){
-    mrpData[index].barPrice = parseFloat(val)||0;
-    const name = mrpData[index].name;
-    const b = barData.find(x=>x.name === name);
-    if(b) b.price = mrpData[index].barPrice;
-    saveData(); renderMRP(); renderBar();
-  }
-
-  // Transfer from MRP to Bar AND consider it a sale (logs as Bar sale).
-  // Behavior: reduce MRP available stock (increase transferred), do NOT increase bar stock;
-  // increment bar sales count and log a sale entry under "Bar" (price = barPrice).
-  function transferToBar(index){
-    let qtyStr = prompt("Enter quantity to TRANSFER to Bar (numbers only). This will be recorded as a Bar sale:");
-    if(qtyStr === null) return;
-    const qty = parseInt(qtyStr.replace(/\D/g,'')) || 0;
-    if(qty <= 0) return alert("Please enter a positive number.");
-    const item = mrpData[index];
-    const closing = item.total - (item.sales || 0) - (item.transferred || 0);
-    if(closing < qty) return alert("Not enough stock in MRP to transfer!");
-    // mark transferred in MRP (reduces MRP closing)
-    item.transferred = (item.transferred || 0) + qty;
-    // log sale as Bar sale (price uses barPrice if set, else mrpPrice fallback)
-    const price = item.barPrice || item.mrpPrice || 0;
-    const dateISO = toISO(new Date());
-    // increase bar sales count (so bar table shows sold count)
-    const barItem = barData.find(b=>b.name === item.name);
-    if(barItem) {
-      barItem.sales = (barItem.sales || 0) + qty;
-    } else {
-      // we don't add stock since transfer is immediately sold; create bar entry with 0 stock and qty sold
-      barData.push({ name: item.name, stock: 0, price: price, sales: qty });
+    function isoToDisplay(iso){
+      const d = new Date(iso + "T00:00:00");
+      return d.toLocaleDateString();
     }
-    // record the sale entry (section "Bar")
-    logDailySale(item.name, qty, price, "Bar", dateISO);
-    saveData(); renderMRP(); renderBar();
-    alert(`Transferred & sold ${qty} ${item.name} at Bar price ₹${price}.`);
-  }
 
-  // Sell from MRP at MRP price (this is a sale)
-  function sellFromMRP(index){
-    let qtyStr = prompt("Enter quantity sold at MRP price (numbers only):");
-    if(qtyStr === null) return;
-    const qty = parseInt(qtyStr.replace(/\D/g,'')) || 0;
-    if(qty <= 0) return alert("Please enter a positive number.");
-    const item = mrpData[index];
-    const closing = item.total - (item.sales || 0) - (item.transferred || 0);
-    if(closing < qty) return alert("Not enough stock in MRP to sell!");
-    item.sales = (item.sales || 0) + qty;
-    const price = item.mrpPrice || 0;
-    const dateISO = toISO(new Date());
-    logDailySale(item.name, qty, price, "MRP", dateISO);
-    saveData(); renderMRP(); renderBar();
-    alert(`Sold ${qty} ${item.name} at MRP ₹${price}.`);
-  }
-
-  function renderBar(){
-    const tbody = document.querySelector("#barTable tbody"); tbody.innerHTML = "";
-    barData.forEach((item,i)=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${item.name}</td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.stock}" onchange="updateBarStock(${i}, this.value)"></td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.price}" onchange="updateBarPrice(${i}, this.value)"></td>
-        <td>${item.sales || 0}</td>
-        <td><button class="small" onclick="sellFromBar(${i})">Sell (Bar)</button></td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function updateBarStock(index,val){ barData[index].stock = parseInt(val)||0; saveData(); renderBar(); }
-  function updateBarPrice(index,val){ barData[index].price = parseFloat(val)||0; saveData(); renderBar(); }
-
-  // Sell from Bar (bar price)
-  function sellFromBar(index){
-    let qtyStr = prompt("Enter quantity sold at Bar price (numbers only):");
-    if(qtyStr === null) return;
-    const qty = parseInt(qtyStr.replace(/\D/g,'')) || 0;
-    if(qty <= 0) return alert("Please enter a positive number.");
-    const item = barData[index];
-    if(item.stock < qty) return alert("Not enough stock in Bar to sell!");
-    item.stock -= qty;
-    item.sales = (item.sales || 0) + qty;
-    const price = item.price || 0;
-    const dateISO = toISO(new Date());
-    logDailySale(item.name, qty, price, "Bar", dateISO);
-    saveData(); renderBar();
-    alert(`Sold ${qty} ${item.name} at Bar ₹${price}.`);
-  }
-
-  // --------- Sales logging & backend sync ----------
-  function logDailySale(name, qty, price, section, dateISO = null){
-    const iso = dateISO || toISO(new Date());
-    if(!dailySales[iso]) dailySales[iso] = [];
-    dailySales[iso].push({ name, qty, price, section });
-    saveData(); renderDailySales();
-    saveSummaryToBackend(iso);
-  }
-
-  function saveSummaryToBackend(dateISO){
-    const entries = dailySales[dateISO] || [];
-    const summary = {};
-    entries.forEach(s=>{
-      if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0 };
-      const k = (s.section || "").toLowerCase();
-      if(k === "mrp") summary[s.name].mrp += Number(s.qty || 0);
-      else summary[s.name].bar += Number(s.qty || 0);
-    });
-    fetch(API_BASE + "/sales", {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ date: dateISO, sales: summary })
-    })
-    .then(r=>r.json()).then(d=>console.log("Saved summary to backend:", d)).catch(e=>console.error("Save summary error:", e));
-  }
-
-  // --------- Dashboard ----------
-  function renderDailySales(){
-    const div = document.getElementById("dailySales"); div.innerHTML = "";
-    const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
-    if(dates.length === 0){
-      div.innerHTML = "<p>No sales recorded yet.</p>";
-      return;
+    function normalizeDailySales(raw){
+      const out = {};
+      Object.keys(raw || {}).forEach(k=>{
+        const iso = toISO(k);
+        out[iso] = raw[k];
+      });
+      return out;
     }
-    const tableWrap = document.createElement("div");
-    tableWrap.style.overflowX = "auto";
-    tableWrap.style.marginTop = "6px";
-    const table = document.createElement("table");
-    table.style.minWidth = "760px";
-    table.innerHTML = `<thead><tr><th>Date</th><th>MRP Items</th><th>Bar Items</th><th>Total Sales (₹)</th><th>Actions</th></tr></thead><tbody></tbody>`;
-    const tbody = table.querySelector("tbody");
-    dates.forEach(dateISO=>{
+
+    // ---------- Storage ----------
+    function saveData(){
+      localStorage.setItem("mrpData", JSON.stringify(mrpData));
+      localStorage.setItem("barData", JSON.stringify(barData));
+      localStorage.setItem("dailySales", JSON.stringify(dailySales));
+    }
+    function loadData(){
+      const mrp = localStorage.getItem("mrpData");
+      const bar = localStorage.getItem("barData");
+      const sales = localStorage.getItem("dailySales");
+      if(mrp) mrpData = JSON.parse(mrp);
+      if(bar) barData = JSON.parse(bar);
+      if(sales){
+        try {
+          const raw = JSON.parse(sales);
+          dailySales = normalizeDailySales(raw);
+        } catch(e){
+          dailySales = {};
+        }
+      }
+      if(!mrpData.length) initializeItems();
+      renderMRP(); renderBar(); renderDailySales();
+    }
+    function initializeItems(){
+      mrpData = defaultItems.map(name => ({ name, opening:0, price:0, total:0, closing:0, sales:0 }));
+      barData = [];
+      saveData();
+    }
+
+    // ---------- MRP & Bar ----------
+    function showSection(section,e){
+      document.querySelectorAll(".container").forEach(div=>div.classList.remove("active-section"));
+      document.getElementById(section).classList.add("active-section");
+      document.querySelectorAll("nav a").forEach(a=>a.classList.remove("active"));
+      if(e && e.currentTarget) e.currentTarget.classList.add("active");
+    }
+
+    function renderMRP(){
+      const tbody = document.querySelector("#mrpTable tbody"); tbody.innerHTML = "";
+      mrpData.forEach((item,i)=>{
+        item.total = item.opening;
+        item.closing = item.total - item.sales;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.name}</td>
+          <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.opening}" onchange="updateOpening(${i}, this.value)"></td>
+          <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.price}" onchange="updatePrice(${i}, this.value)"></td>
+          <td>${item.total}</td>
+          <td>${item.closing}</td>
+          <td>${item.sales}</td>
+          <td><button class="small" onclick="sellFromMRP(${i})">Sell</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateOpening(index, val){ mrpData[index].opening = parseInt(val) || 0; saveData(); renderMRP(); }
+    function updatePrice(index, val){ mrpData[index].price = parseFloat(val) || 0; saveData(); }
+
+    function sellFromMRP(index){
+      // use custom numeric prompt: we still use prompt() but validate numeric only
+      let qtyStr = prompt("Enter quantity sold (numbers only):");
+      if(qtyStr === null) return;
+      const qty = parseInt(qtyStr.replace(/\D/g,'')) || 0;
+      if(qty <= 0) return alert("Please enter a valid positive number.");
+      const item = mrpData[index];
+      if(item.closing < qty) return alert("Not enough stock!");
+      item.sales += qty;
+      item.closing = item.total - item.sales;
+
+      const barItem = barData.find(b => b.name === item.name);
+      if(barItem) barItem.stock += qty;
+      else barData.push({ name: item.name, stock: qty, price: item.price, sales: 0 });
+
+      logDailySale(item.name, qty, item.price, "MRP");
+      saveData();
+      renderMRP();
+      renderBar();
+    }
+
+    function renderBar(){
+      const tbody = document.querySelector("#barTable tbody"); tbody.innerHTML = "";
+      barData.forEach((item,i)=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${item.name}</td>
+          <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.stock}" onchange="updateBarStock(${i}, this.value)"></td>
+          <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.price}" onchange="updateBarPrice(${i}, this.value)"></td>
+          <td><button class="small" onclick="sellFromBar(${i})">Sell</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function updateBarStock(index, val){ barData[index].stock = parseInt(val)||0; saveData(); renderBar(); }
+    function updateBarPrice(index, val){ barData[index].price = parseFloat(val)||0; saveData(); renderBar(); }
+
+    function sellFromBar(index){
+      let qtyStr = prompt("Enter quantity sold (numbers only):");
+      if(qtyStr === null) return;
+      const qty = parseInt(qtyStr.replace(/\D/g,'')) || 0;
+      if(qty <= 0) return alert("Please enter a valid positive number.");
+      const item = barData[index];
+      if(item.stock < qty) return alert("Not enough stock!");
+      item.stock -= qty;
+      item.sales += qty;
+      logDailySale(item.name, qty, item.price, "Bar");
+      saveData();
+      renderBar();
+    }
+
+    // ---------- daily sales ----------
+    function logDailySale(name, qty, price, section, dateISO = null){
+      const iso = dateISO || toISO(new Date());
+      if(!dailySales[iso]) dailySales[iso] = [];
+      dailySales[iso].push({ name, qty, price, section });
+      saveData();
+      renderDailySales();
+      saveSummaryToBackend(iso);
+    }
+
+    function saveSummaryToBackend(dateISO){
       const entries = dailySales[dateISO] || [];
       const summary = {};
-      let totalAmount = 0;
+      entries.forEach(s=>{
+        if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0 };
+        const k = (s.section || "").toLowerCase();
+        if(k === "mrp") summary[s.name].mrp += Number(s.qty || 0);
+        else summary[s.name].bar += Number(s.qty || 0);
+      });
+      fetch(API_BASE + "/sales", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ date: dateISO, sales: summary })
+      }).then(r=>r.json()).then(d=>console.log("Saved summary to backend:", d)).catch(e=>console.error("Save summary error:", e));
+    }
+
+    // ---------- Dashboard ----------
+    function renderDailySales(){
+      const div = document.getElementById("dailySales"); div.innerHTML = "";
+      const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
+      if(dates.length === 0){
+        div.innerHTML = "<p>No sales recorded yet.</p>";
+        return;
+      }
+      // create a small in-page table for dashboard with actions; keep horizontal layout
+      const tableWrap = document.createElement("div");
+      tableWrap.style.overflowX = "auto";
+      tableWrap.style.marginTop = "6px";
+      const table = document.createElement("table");
+      table.style.minWidth = "720px";
+      table.innerHTML = `<thead><tr><th>Date</th><th>MRP Items</th><th>Bar Items</th><th>Total Sales (₹)</th><th>Actions</th></tr></thead><tbody></tbody>`;
+      const tbody = table.querySelector("tbody");
+      dates.forEach(dateISO=>{
+        // build summary counts and total rupees for display
+        const entries = dailySales[dateISO] || [];
+        const summary = {};
+        let totalAmount = 0;
+        entries.forEach(s=>{
+          if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
+          if(s.section === "MRP") summary[s.name].mrp += s.qty;
+          else summary[s.name].bar += s.qty;
+        });
+        Object.keys(summary).forEach(p=>{
+          const price = summary[p].price || 0;
+          totalAmount += (summary[p].mrp + summary[p].bar) * Number(price || 0);
+        });
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${isoToDisplay(dateISO)}</td>
+          <td>${Object.values(summary).reduce((a,c)=>a + (c.mrp||0),0)}</td>
+          <td>${Object.values(summary).reduce((a,c)=>a + (c.bar||0),0)}</td>
+          <td>₹${totalAmount.toFixed(2)}</td>
+          <td>
+            <button class="small" onclick="openModal('${dateISO}')">View</button>
+            <button class="small" onclick="openModal('${dateISO}')" style="margin-left:6px">Edit</button>
+            <button class="danger" onclick="if(confirm('Send email for ${isoToDisplay(dateISO)}?')) closeBillFor('${dateISO}')" style="margin-left:6px">Close Bill</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+      tableWrap.appendChild(table);
+      div.appendChild(tableWrap);
+    }
+
+    // ---------- Modal and editing ----------
+    function openModal(dateISO){
+      currentModalDate = dateISO;
+      document.getElementById("salesModal").style.display = "flex";
+      document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
+      const tbody = document.querySelector("#modalTable tbody"); tbody.innerHTML = "";
+
+      const entries = dailySales[dateISO] || [];
+      const summary = {};
       entries.forEach(s=>{
         if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
         if(s.section === "MRP") summary[s.name].mrp += s.qty;
         else summary[s.name].bar += s.qty;
       });
+
+      let totalAmount = 0;
       Object.keys(summary).forEach(p=>{
+        const mrpQty = summary[p].mrp || 0;
+        const barQty = summary[p].bar || 0;
         const price = summary[p].price || 0;
-        totalAmount += (summary[p].mrp + summary[p].bar) * Number(price || 0);
+        const total = (mrpQty + barQty) * price;
+        totalAmount += total;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${p}</td><td>${mrpQty}</td><td>${barQty}</td><td>₹${total.toFixed(2)}</td>`;
+        tbody.appendChild(tr);
       });
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${isoToDisplay(dateISO)}</td>
-        <td>${Object.values(summary).reduce((a,c)=>a + (c.mrp||0),0)}</td>
-        <td>${Object.values(summary).reduce((a,c)=>a + (c.bar||0),0)}</td>
-        <td>₹${totalAmount.toFixed(2)}</td>
-        <td>
-          <button class="small" onclick="openModal('${dateISO}')">View</button>
-          <button class="small" onclick="openModal('${dateISO}')" style="margin-left:6px">Edit</button>
-          <button class="danger" onclick="if(confirm('Send email for ${isoToDisplay(dateISO)}?')) closeBillFor('${dateISO}')" style="margin-left:6px">Close Bill</button>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-    tableWrap.appendChild(table);
-    div.appendChild(tableWrap);
-  }
+      const totalRow = document.createElement("tr"); totalRow.className = "total-row";
+      totalRow.innerHTML = `<td colspan="3">Total Sales</td><td>₹${totalAmount.toFixed(2)}</td>`;
+      tbody.appendChild(totalRow);
 
-  // --------- Modal ----------
-  function openModal(dateISO){
-    currentModalDate = dateISO;
-    document.getElementById("salesModal").style.display = "flex";
-    document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
-    const tbody = document.querySelector("#modalTable tbody"); tbody.innerHTML = "";
-
-    const entries = dailySales[dateISO] || [];
-    const summary = {};
-    entries.forEach(s=>{
-      if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
-      if(s.section === "MRP") summary[s.name].mrp += s.qty;
-      else summary[s.name].bar += s.qty;
-    });
-
-    let totalAmount = 0;
-    Object.keys(summary).forEach(p=>{
-      const mrpQty = summary[p].mrp || 0; const barQty = summary[p].bar || 0;
-      const price = summary[p].price || 0;
-      const total = (mrpQty + barQty) * price;
-      totalAmount += total;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${p}</td><td>${mrpQty}</td><td>${barQty}</td><td>₹${total.toFixed(2)}</td>`;
-      tbody.appendChild(tr);
-    });
-
-    const totalRow = document.createElement("tr"); totalRow.className = "total-row";
-    totalRow.innerHTML = `<td colspan="3">Total Sales</td><td>₹${totalAmount.toFixed(2)}</td>`;
-    tbody.appendChild(totalRow);
-
-    // fill product select
-    const select = document.getElementById("addProductSelect"); select.innerHTML = "";
-    const names = Array.from(new Set(defaultItems.concat(Object.keys(summary))));
-    names.forEach(n=>{ const opt = document.createElement("option"); opt.value = n; opt.textContent = n; select.appendChild(opt); });
-
-    document.getElementById("addPrice").value = findPriceForProduct(select.value) || 0;
-
-    const modalCloseBtn = document.getElementById("modalCloseBillBtn");
-    if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){
-      modalCloseBtn.disabled = true; modalCloseBtn.textContent = "Closed";
-    } else { modalCloseBtn.disabled = false; modalCloseBtn.textContent = "📨 Close Bill for this Date"; }
-  }
-
-  function closeModal(){ document.getElementById("salesModal").style.display = "none"; currentModalDate = null; }
-
-  function findPriceForProduct(name){
-    const m = mrpData.find(x=>x.name === name); if(m && m.mrpPrice) return m.mrpPrice;
-    const b = barData.find(x=>x.name === name); if(b && b.price) return b.price;
-    return 0;
-  }
-
-  function addSoldItem(){
-    if(!currentModalDate) return alert("Open a date first.");
-    const name = document.getElementById("addProductSelect").value;
-    const qty = parseInt(document.getElementById("addQty").value) || 0;
-    const price = parseFloat(document.getElementById("addPrice").value) || 0;
-    const section = document.getElementById("addSection").value || "MRP";
-    if(!name || qty <= 0) return alert("Please enter product and numeric positive quantity.");
-    if(!dailySales[currentModalDate]) dailySales[currentModalDate] = [];
-    dailySales[currentModalDate].push({ name, qty, price, section });
-    saveData(); saveSummaryToBackend(currentModalDate); openModal(currentModalDate); renderDailySales();
-    alert("Added sold item to " + isoToDisplay(currentModalDate));
-  }
-
-  function saveModalEdits(){
-    if(!currentModalDate) return;
-    saveData(); saveSummaryToBackend(currentModalDate);
-    alert("Saved changes for " + isoToDisplay(currentModalDate));
-    renderDailySales();
-  }
-
-  // --------- Close bill for specific date ----------
-  async function closeBillFor(dateISO){
-    try {
-      const resp = await fetch(API_BASE + "/send-email", {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ date: dateISO })
+      // set up add product select choices
+      const select = document.getElementById("addProductSelect"); select.innerHTML = "";
+      const names = Array.from(new Set(defaultItems.concat(Object.keys(summary))));
+      names.forEach(n => {
+        const opt = document.createElement("option"); opt.value = n; opt.textContent = n; select.appendChild(opt);
       });
-      const data = await resp.json().catch(()=>null);
-      if(!resp.ok){
-        alert("Server error: " + (data && data.message ? data.message : resp.status));
-        return;
+
+      // set price default to known price if exists
+      document.getElementById("addPrice").value = findPriceForProduct(select.value) || 0;
+
+      // modal close-bill button state (local)
+      const modalCloseBtn = document.getElementById("modalCloseBillBtn");
+      if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){
+        modalCloseBtn.disabled = true;
+        modalCloseBtn.textContent = "Closed";
+      } else {
+        modalCloseBtn.disabled = false;
+        modalCloseBtn.textContent = "📨 Close Bill for this Date";
       }
-      alert(data && data.message ? data.message : "Email sent for " + isoToDisplay(dateISO));
-      localStorage.setItem(`billClosed_${dateISO}`, 'true');
-      renderDailySales();
-      if(currentModalDate === dateISO){
-        const btn = document.getElementById("modalCloseBillBtn"); if(btn){ btn.disabled = true; btn.textContent = "Closed"; }
-      }
-    } catch (err) {
-      console.error("closeBillFor error:", err);
-      alert("Failed to send email. See console.");
     }
-  }
 
-  // helper used by modal close-bill button (keeps name backward compatibility)
-  function closeBillForDate(){ if(currentModalDate) closeBillFor(currentModalDate); }
+    function closeModal(){ document.getElementById("salesModal").style.display = "none"; currentModalDate = null; }
 
-  // --------- Init & expose ----------
-  window.onload = () => { loadData(); };
-  window.showSection = showSection;
-  window.sellFromMRP = sellFromMRP;
-  window.sellFromBar = sellFromBar;
-  window.openModal = openModal;
-  window.closeModal = closeModal;
-  window.addSoldItem = addSoldItem;
-  window.saveModalEdits = saveModalEdits;
-  window.closeBillFor = closeBillFor;
-</script>
+    function findPriceForProduct(name){
+      const m = mrpData.find(x=>x.name === name); if(m && m.price) return m.price;
+      const b = barData.find(x=>x.name === name); if(b && b.price) return b.price;
+      return 0;
+    }
+
+    function addSoldItem(){
+      if(!currentModalDate) return alert("Open a date first.");
+      const name = document.getElementById("addProductSelect").value;
+      const qty = parseInt(document.getElementById("addQty").value) || 0;
+      const price = parseFloat(document.getElementById("addPrice").value) || 0;
+      const section = document.getElementById("addSection").value || "MRP";
+      if(!name || qty <= 0) return alert("Please enter product and numeric positive quantity.");
+      if(!dailySales[currentModalDate]) dailySales[currentModalDate] = [];
+      dailySales[currentModalDate].push({ name, qty, price, section });
+      saveData();
+      saveSummaryToBackend(currentModalDate);
+      openModal(currentModalDate);
+      renderDailySales();
+      alert("Added sold item to " + isoToDisplay(currentModalDate));
+    }
+
+    function saveModalEdits(){
+      if(!currentModalDate) return;
+      saveData();
+      saveSummaryToBackend(currentModalDate);
+      alert("Saved changes for " + isoToDisplay(currentModalDate));
+      renderDailySales();
+    }
+
+    // ---------- Close bill for specific date ----------
+    async function closeBillFor(dateISO){
+      try {
+        const resp = await fetch(API_BASE + "/send-email", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ date: dateISO })
+        });
+        const data = await resp.json().catch(()=>null);
+        if(!resp.ok){
+          alert("Server error: " + (data && data.message ? data.message : resp.status));
+          return;
+        }
+        alert(data && data.message ? data.message : "Email sent for " + isoToDisplay(dateISO));
+        localStorage.setItem(`billClosed_${dateISO}`, 'true');
+        renderDailySales();
+        if(currentModalDate === dateISO){
+          const btn = document.getElementById("modalCloseBillBtn"); btn.disabled = true; btn.textContent = "Closed";
+        }
+      } catch (err) {
+        console.error("closeBillFor error:", err);
+        alert("Failed to send email. See console.");
+      }
+    }
+
+    // ---------- Init ----------
+    window.onload = () => { loadData(); };
+
+    // expose functions used by on* handlers
+    window.showSection = showSection;
+    window.sellFromMRP = sellFromMRP;
+    window.sellFromBar = sellFromBar;
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.addSoldItem = addSoldItem;
+    window.saveModalEdits = saveModalEdits;
+    window.closeBillFor = closeBillFor;
+  </script>
 </body>
 </html>
