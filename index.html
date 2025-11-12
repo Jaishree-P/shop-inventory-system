@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Shop Inventory System</title>
+  <style>
+    /* keep your existing styles + small layout for dashboard rows */
+    body{font-family:"Poppins",sans-serif;margin:0;background:#f4f8fc;color:#333}
+    nav{background:#337ab7;color:#fff;padding:12px 20px;display:flex;justify-content:space-around;align-items:center;flex-wrap:wrap}
+    nav a{color:#fff;text-decoration:none;font-weight:500;margin:8px;padding:8px 16px;border-radius:6px;transition:background .3s}
+    nav a:hover,nav a.active{background:#286090}
+    .container{display:none;padding:20px}
+    .active-section{display:block}
+    h2{color:#286090;text-align:center;margin-bottom:20px}
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+    th,td{padding:10px;text-align:center;border-bottom:1px solid #ddd}
+    th{background:#e7f0fa}
+    input,button,select{padding:6px 10px;border:1px solid #ccc;border-radius:6px;outline:none}
+    button{background:#337ab7;color:#fff;border:none;cursor:pointer}
+    button:hover{background:#286090}
+    @media(max-width:768px){table,thead,tbody,th,td,tr{display:block}th{display:none}td{padding:8px;border:none;position:relative}td::before{content:attr(data-label);position:absolute;left:10px;font-weight:bold}}
+    .daily-sales{background:#fff;border-radius:10px;padding:10px}
+    .date-row{display:flex;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px solid #eef;gap:8px}
+    .date-left{cursor:pointer;color:#337ab7;font-weight:500}
+    .date-actions button{margin-left:8px}
+    .modal{display:none;position:fixed;z-index:10;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.4);justify-content:center;align-items:center}
+    .modal-content{background:#fff;border-radius:10px;padding:20px;width:92%;max-width:700px;animation:fadeIn .25s}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:none}}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .close-btn{background:none;border:none;font-size:20px;color:#333;cursor:pointer}
+    .modal-table th{background:#e7f0fa}
+    .modal-table td,.modal-table th{padding:8px;border:1px solid #ddd}
+    .total-row{font-weight:bold;background:#f1f6fb}
+    .close-bill-btn{display:inline-block;background:#d9534f;color:#fff;font-weight:500;padding:8px 12px;border-radius:6px;border:none;cursor:pointer}
+    .close-bill-btn[disabled]{opacity:.6;cursor:not-allowed}
+    .small-btn{padding:6px 8px;border-radius:6px;background:#337ab7;color:#fff;border:none;cursor:pointer}
+    .small-btn.gray{background:#6c757d}
+    .form-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+    .form-row input,.form-row select{flex:1;min-width:120px}
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="#" class="active" onclick="showSection('mrp',event)">MRP Section</a>
+    <a href="#" onclick="showSection('bar',event)">Bar Section</a>
+    <a href="#" onclick="showSection('dashboard',event)">Dashboard</a>
+  </nav>
+
+  <div id="mrp" class="container active-section">
+    <h2>MRP Section</h2>
+    <table id="mrpTable"><thead><tr>
+      <th>Items</th><th>Opening Balance</th><th>Amt per Quantity</th><th>Total</th><th>Closing Balance</th><th>Sales</th><th>Action</th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="bar" class="container">
+    <h2>Bar Section</h2>
+    <table id="barTable"><thead><tr><th>Items</th><th>Stock</th><th>Amt per Quantity</th><th>Sales</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="dashboard" class="container">
+    <h2>Daily Sales Report</h2>
+    <div class="daily-sales" id="dailySales"></div>
+  </div>
+
+  <div id="salesModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalDate">Sales Report</h3>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+
+      <div id="modalBody">
+        <!-- existing table -->
+        <table class="modal-table" id="modalTable">
+          <thead><tr><th>Product</th><th>MRP Qty</th><th>Bar Qty</th><th>Total Sales (₹)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <!-- add/edit form -->
+        <div style="margin-top:12px;">
+          <h4>Add / Edit Sold Item for this date</h4>
+          <div class="form-row">
+            <select id="addProductSelect"></select>
+            <input id="addQty" type="number" placeholder="Quantity" min="1" value="1"/>
+            <input id="addPrice" type="number" placeholder="Amt per Quantity" min="0" value="0"/>
+            <select id="addSection"><option>MRP</option><option>Bar</option></select>
+            <button class="small-btn" onclick="addSoldItem()">Add Sold Item</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;text-align:right;">
+          <button class="small-btn gray" onclick="saveModalEdits()">Save Changes</button>
+          <button class="close-bill-btn" id="modalCloseBillBtn" onclick="closeBillForDate()">📨 Close Bill for this Date</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const defaultItems = [
+      "2 Litre Water","1 Liter water","500 ML water","soda 750ml",
+      "600ml cool drinks","250ml cool drinks","5rs glass","3rs glass",
+      "mixer","cover big","cover medium","cover small"
+    ];
+
+    const API_BASE = "http://localhost:5000/api";
+    let mrpData = [], barData = [], dailySales = {}; // dailySales keys: ISO 'YYYY-MM-DD'
+    let currentModalDate = null;
+
+    // --- normalize existing dailySales keys to ISO on load
+    function normalizeDailySales(raw) {
+      const out = {};
+      Object.keys(raw || {}).forEach(key => {
+        const iso = toISO(key);
+        out[iso] = raw[key];
+      });
+      return out;
+    }
+
+    // convert many date inputs into ISO YYYY-MM-DD
+    function toISO(dateLike) {
+      // if already ISO-like
+      if (typeof dateLike === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateLike)) return dateLike;
+      const d = new Date(dateLike);
+      if (isNaN(d)) return (new Date()).toISOString().split('T')[0];
+      return d.toISOString().split('T')[0];
+    }
+
+    // convert ISO to locale display
+    function isoToDisplay(iso) {
+      const d = new Date(iso + "T00:00:00");
+      return d.toLocaleDateString();
+    }
+
+    // load & migrate data
+    function loadData(){
+      const mrp = localStorage.getItem("mrpData");
+      const bar = localStorage.getItem("barData");
+      const sales = localStorage.getItem("dailySales");
+      if (mrp) mrpData = JSON.parse(mrp);
+      if (bar) barData = JSON.parse(bar);
+      if (sales) {
+        const raw = JSON.parse(sales);
+        dailySales = normalizeDailySales(raw);
+        // ensure arrays (in older format each value could be array of entries)
+        Object.keys(dailySales).forEach(k => {
+          if (!Array.isArray(dailySales[k])) dailySales[k] = dailySales[k];
+        });
+      }
+      if (!mrpData.length) initializeItems();
+      renderMRP(); renderBar(); renderDailySales();
+    }
+
+    function saveData(){
+      // we still save dailySales in locale/array shape for backward compatibility
+      localStorage.setItem("mrpData", JSON.stringify(mrpData));
+      localStorage.setItem("barData", JSON.stringify(barData));
+      // store using ISO keys
+      localStorage.setItem("dailySales", JSON.stringify(dailySales));
+    }
+
+    function initializeItems(){
+      mrpData = defaultItems.map(name => ({ name, opening:0, price:0, total:0, closing:0, sales:0 }));
+      barData = [];
+      saveData();
+    }
+
+    // --- MRP / Bar rendering (unchanged)
+    function showSection(section,e){
+      document.querySelectorAll(".container").forEach(div=>div.classList.remove("active-section"));
+      document.getElementById(section).classList.add("active-section");
+      document.querySelectorAll("nav a").forEach(a=>a.classList.remove("active"));
+      e.target.classList.add("active");
+    }
+
+    function renderMRP(){
+      const tbody = document.querySelector("#mrpTable tbody"); tbody.innerHTML="";
+      mrpData.forEach((item,i)=>{
+        item.total = item.opening;
+        item.closing = item.total - item.sales;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${item.name}</td>
+          <td><input type="number" value="${item.opening}" onchange="updateOpening(${i},this.value)"></td>
+          <td><input type="number" value="${item.price}" onchange="updatePrice(${i},this.value)"></td>
+          <td>${item.total}</td><td>${item.closing}</td><td>${item.sales}</td>
+          <td><button onclick="sellFromMRP(${i})">Sell</button></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    function updateOpening(index,val){ mrpData[index].opening = parseInt(val)||0; saveData(); renderMRP(); }
+    function updatePrice(index,val){ mrpData[index].price = parseFloat(val)||0; saveData(); }
+    function sellFromMRP(index){ const qty = parseInt(prompt("Enter quantity sold:")); if(isNaN(qty)||qty<=0) return;
+      const item=mrpData[index]; if(item.closing<qty) return alert("Not enough stock!"); item.sales+=qty; item.closing=item.total-item.sales;
+      const barItem = barData.find(b=>b.name===item.name);
+      if(barItem) barItem.stock+=qty; else barData.push({name:item.name,stock:qty,price:item.price,sales:0});
+      logDailySale(item.name,qty,item.price,"MRP"); saveData(); renderMRP(); renderBar();
+    }
+
+    function renderBar(){ const tbody = document.querySelector("#barTable tbody"); tbody.innerHTML="";
+      barData.forEach((item,i)=>{ const tr=document.createElement("tr");
+        tr.innerHTML = `<td>${item.name}</td><td>${item.stock}</td><td>${item.price}</td><td><button onclick="sellFromBar(${i})">Sell</button></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    function sellFromBar(index){ const qty=parseInt(prompt("Enter quantity sold:")); if(isNaN(qty)||qty<=0) return;
+      const item = barData[index]; if(item.stock<qty) return alert("Not enough stock!"); item.stock-=qty; item.sales+=qty;
+      logDailySale(item.name,qty,item.price,"Bar"); saveData(); renderBar();
+    }
+
+    // --- Sales logging & backend sync --- store entries as array per ISO date
+    function logDailySale(name,qty,price,section,dateISO=null){
+      const iso = dateISO || toISO(new Date());
+      if(!dailySales[iso]) dailySales[iso]=[];
+      dailySales[iso].push({ name, qty, price, section });
+      saveData(); renderDailySales();
+      saveSummaryToBackend(iso);
+    }
+
+    // Build summary object (product => { mrp, bar }) and post to backend
+    function saveSummaryToBackend(dateISO){
+      const entries = dailySales[dateISO] || [];
+      const summary = {};
+      entries.forEach(s => {
+        if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0 };
+        const key = (s.section||'').toLowerCase();
+        // we will store counts (as your server expects numeric), keep same format you used earlier
+        // Your server previously expected counts; if it expects qty or amounts, adapt accordingly.
+        summary[s.name][key] += s.qty; // storing qty; server email builds amounts if needed
+      });
+      fetch(API_BASE + "/sales", {
+        method: "POST", headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ date: dateISO, sales: summary })
+      })
+      .then(r=>r.json()).then(d=>console.log("Saved summary to backend:",d)).catch(e=>console.error("Save summary error:",e));
+    }
+
+    // --- Dashboard rendering with per-date Edit + Close Bill buttons
+    function renderDailySales(){
+      const div = document.getElementById("dailySales"); div.innerHTML="";
+      // sort dates descending
+      const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
+      if(dates.length===0) div.innerHTML = "<p>No sales recorded yet.</p>";
+      dates.forEach(dateISO=>{
+        const wrapper = document.createElement("div"); wrapper.className = "date-row";
+        const left = document.createElement("div"); left.className="date-left"; left.textContent = isoToDisplay(dateISO);
+        left.onclick = ()=> openModal(dateISO);
+        const actions = document.createElement("div"); actions.className = "date-actions";
+        const editBtn = document.createElement("button"); editBtn.className="small-btn"; editBtn.textContent="Edit"; editBtn.onclick = (e)=>{ e.stopPropagation(); openModal(dateISO); };
+        const closeBtn = document.createElement("button"); closeBtn.className="close-bill-btn"; closeBtn.textContent="Close Bill"; 
+        // disable if already closed (local flag)
+        if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){ closeBtn.disabled=true; closeBtn.textContent="Closed"; }
+        closeBtn.onclick = async (e)=>{ e.stopPropagation(); if(!confirm("Send email for "+isoToDisplay(dateISO)+"?")) return;
+          // call API to send for this date
+          await closeBillFor(dateISO);
+        };
+        actions.appendChild(editBtn); actions.appendChild(closeBtn);
+        wrapper.appendChild(left); wrapper.appendChild(actions);
+        div.appendChild(wrapper);
+      });
+    }
+
+    // --- Modal open: show table of summaries and allow adding entries
+    function openModal(dateISO){
+      currentModalDate = dateISO;
+      document.getElementById("salesModal").style.display = "flex";
+      document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
+      const tbody = document.querySelector("#modalTable tbody"); tbody.innerHTML="";
+      // build summary as before (counts per section)
+      const summary = {};
+      const entries = dailySales[dateISO] || [];
+      entries.forEach(s=>{
+        if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
+        if(s.section==="MRP") summary[s.name].mrp += s.qty;
+        else summary[s.name].bar += s.qty;
+      });
+      let totalAmount = 0;
+      Object.keys(summary).forEach(p=>{
+        const mrpQty = summary[p].mrp || 0; const barQty = summary[p].bar || 0;
+        const price = summary[p].price || 0;
+        const total = (mrpQty + barQty) * price;
+        totalAmount += total;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${p}</td><td>${mrpQty}</td><td>${barQty}</td><td>₹${(total).toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+      });
+      const totalRow = document.createElement("tr"); totalRow.className="total-row";
+      totalRow.innerHTML = `<td colspan="3">Total Sales</td><td>₹${totalAmount.toFixed(2)}</td>`;
+      tbody.appendChild(totalRow);
+
+      // fill product select
+      const select = document.getElementById("addProductSelect"); select.innerHTML="";
+      defaultItems.concat(Object.keys(summary)).forEach(name=>{
+        const opt = document.createElement("option"); opt.value = name; opt.textContent = name; select.appendChild(opt);
+      });
+
+      // modal close-bill button state
+      const modalCloseBtn = document.getElementById("modalCloseBillBtn");
+      if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){
+        modalCloseBtn.disabled = true; modalCloseBtn.textContent = "Closed";
+      } else { modalCloseBtn.disabled=false; modalCloseBtn.textContent = "📨 Close Bill for this Date"; }
+    }
+
+    function closeModal(){ document.getElementById("salesModal").style.display="none"; currentModalDate=null; }
+
+    // add sold item into currentModalDate
+    function addSoldItem(){
+      if(!currentModalDate) return alert("Open a date first.");
+      const name = document.getElementById("addProductSelect").value || document.getElementById("addProductSelect").options[0].text;
+      const qty = parseInt(document.getElementById("addQty").value) || 0;
+      const price = parseFloat(document.getElementById("addPrice").value) || 0;
+      const section = document.getElementById("addSection").value || "MRP";
+      if(!name || qty<=0){ return alert("Please enter product and quantity."); }
+      // push entry
+      if(!dailySales[currentModalDate]) dailySales[currentModalDate]=[];
+      dailySales[currentModalDate].push({ name, qty, price, section });
+      saveData();
+      // update summary on backend for that date
+      saveSummaryToBackend(currentModalDate);
+      // refresh modal display
+      openModal(currentModalDate);
+      renderDailySales();
+      alert("Added sold item to " + isoToDisplay(currentModalDate));
+    }
+
+    // Save modal edits (currently already saved when adding; this keeps API sync)
+    function saveModalEdits(){
+      if(!currentModalDate) return;
+      saveData(); saveSummaryToBackend(currentModalDate);
+      alert("Saved changes for "+ isoToDisplay(currentModalDate));
+      renderDailySales();
+    }
+
+    // Close bill for a given date (UI calls this)
+    async function closeBillFor(dateISO){
+      try {
+        const resp = await fetch(API_BASE + "/send-email", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify({ date: dateISO })
+        });
+        const data = await resp.json().catch(()=>null);
+        if(!resp.ok){ alert("Server error: "+(data&&data.message?data.message:resp.status)); return; }
+        alert(data && data.message ? data.message : "Email sent for "+isoToDisplay(dateISO));
+        // mark closed locally
+        localStorage.setItem(`billClosed_${dateISO}`,'true');
+        renderDailySales();
+        // disable modal button if open for same date
+        if(currentModalDate === dateISO){
+          document.getElementById("modalCloseBillBtn").disabled = true;
+          document.getElementById("modalCloseBillBtn").textContent = "Closed";
+        }
+      } catch (err) {
+        console.error("closeBillFor error:", err);
+        alert("Failed to send email. See console.");
+      }
+    }
+
+    // called by any single global Close Bill (if you keep one)
+    async function closeBill(){
+      if(!currentModalDate) return alert("Open a date first (click a date).");
+      return closeBillFor(currentModalDate);
+    }
+
+    // when page load
+    window.onload = () => { loadData(); };
+
+    // expose functions required by inline onclicks
+    window.showSection = showSection;
+    window.sellFromMRP = sellFromMRP;
+    window.sellFromBar = sellFromBar;
+    window.closeBill = closeBill;
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+  </script>
+</body>
+</html>
