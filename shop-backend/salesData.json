@@ -2,16 +2,8 @@
   "dailySales": {
     "2025-11-12": {
       "2 Litre Water": {
-        "mrp": 200,
-        "bar": 160
-      },
-      "1 Liter water": {
-        "mrp": 100,
-        "bar": 60
-      },
-      "500 ML water": {
-        "mrp": 150,
-        "bar": 90
+        "mrp": 3,
+        "bar": 2
       }
     },
     "2025-12-10": {

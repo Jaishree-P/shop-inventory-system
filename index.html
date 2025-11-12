@@ -1,69 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shop Inventory System</title>
   <style>
-    /* keep your existing styles + small layout for dashboard rows */
-    body{font-family:"Poppins",sans-serif;margin:0;background:#f4f8fc;color:#333}
-    nav{background:#337ab7;color:#fff;padding:12px 20px;display:flex;justify-content:space-around;align-items:center;flex-wrap:wrap}
-    nav a{color:#fff;text-decoration:none;font-weight:500;margin:8px;padding:8px 16px;border-radius:6px;transition:background .3s}
-    nav a:hover,nav a.active{background:#286090}
-    .container{display:none;padding:20px}
+    :root{
+      --blue:#2f78b4;
+      --blue-darker:#246294;
+      --muted:#f1f6fb;
+      --card:#ffffff;
+      --radius:10px;
+      --gap:12px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      font-family: "Poppins", sans-serif;
+      margin:0;
+      background-color:#f4f8fc;
+      color:#222;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.3;
+      padding-bottom:24px;
+    }
+
+    /* NAV */
+    .top-nav{
+      position:sticky;
+      top:0;
+      z-index:30;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 14px;
+      background:var(--blue);
+      color:#fff;
+      gap:12px;
+    }
+    .nav-left{display:flex;align-items:center;gap:10px}
+    .brand{font-weight:600;font-size:16px}
+    .nav-toggle{
+      display:none;
+      background:transparent;border:none;color:#fff;font-size:20px;padding:6px 8px;
+      width:44px;height:44px;border-radius:8px;
+    }
+    .nav-links{display:flex;gap:8px;align-items:center}
+    .nav-links a{
+      color:white;text-decoration:none;font-weight:500;padding:8px 14px;border-radius:8px;
+      transition:background .18s;
+    }
+    .nav-links a.active, .nav-links a:hover{background:var(--blue-darker)}
+
+    /* Layout containers */
+    .container{
+      display:none;
+      padding:16px;
+      max-width:980px;
+      margin:16px auto;
+    }
     .active-section{display:block}
-    h2{color:#286090;text-align:center;margin-bottom:20px}
-    table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
-    th,td{padding:10px;text-align:center;border-bottom:1px solid #ddd}
-    th{background:#e7f0fa}
-    input,button,select{padding:6px 10px;border:1px solid #ccc;border-radius:6px;outline:none}
-    button{background:#337ab7;color:#fff;border:none;cursor:pointer}
-    button:hover{background:#286090}
-    @media(max-width:768px){table,thead,tbody,th,td,tr{display:block}th{display:none}td{padding:8px;border:none;position:relative}td::before{content:attr(data-label);position:absolute;left:10px;font-weight:bold}}
-    .daily-sales{background:#fff;border-radius:10px;padding:10px}
-    .date-row{display:flex;justify-content:space-between;align-items:center;padding:8px 6px;border-bottom:1px solid #eef;gap:8px}
-    .date-left{cursor:pointer;color:#337ab7;font-weight:500}
-    .date-actions button{margin-left:8px}
-    .modal{display:none;position:fixed;z-index:10;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.4);justify-content:center;align-items:center}
-    .modal-content{background:#fff;border-radius:10px;padding:20px;width:92%;max-width:700px;animation:fadeIn .25s}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:none}}
-    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-    .close-btn{background:none;border:none;font-size:20px;color:#333;cursor:pointer}
-    .modal-table th{background:#e7f0fa}
-    .modal-table td,.modal-table th{padding:8px;border:1px solid #ddd}
-    .total-row{font-weight:bold;background:#f1f6fb}
-    .close-bill-btn{display:inline-block;background:#d9534f;color:#fff;font-weight:500;padding:8px 12px;border-radius:6px;border:none;cursor:pointer}
-    .close-bill-btn[disabled]{opacity:.6;cursor:not-allowed}
-    .small-btn{padding:6px 8px;border-radius:6px;background:#337ab7;color:#fff;border:none;cursor:pointer}
+    h2{color:var(--blue-darker);text-align:center;margin:8px 0 18px 0;font-size:18px}
+
+    /* TABLES: desktop look */
+    table{
+      width:100%;border-collapse:collapse;background:var(--card);border-radius:var(--radius);overflow:hidden;
+    }
+    th, td{padding:10px;text-align:center;border-bottom:1px solid #e9eef6}
+    th{background:var(--muted);font-weight:600}
+    input, button, select{padding:8px 10px;border:1px solid #d5dce8;border-radius:8px;outline:none}
+    button{background:var(--blue);color:#fff;border:none;cursor:pointer}
+    button:hover{background:var(--blue-darker)}
+
+    /* small helper classes */
+    .date-row{cursor:pointer;color:var(--blue);font-weight:600;margin:6px 0;display:flex;justify-content:space-between;align-items:center}
+    .date-actions{display:flex;gap:8px}
+    .small-btn{padding:8px 10px;border-radius:8px;font-size:14px}
+    .close-bill-btn{background:#d9534f;color:#fff;padding:8px 10px;border-radius:8px}
     .small-btn.gray{background:#6c757d}
+
+    /* MODAL */
+    .modal{display:none;position:fixed;z-index:40;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;padding:12px}
+    .modal-content{background:#fff;border-radius:12px;padding:14px;width:100%;max-width:720px;max-height:90vh;overflow:auto}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .close-btn{background:none;border:none;font-size:22px;color:#333;cursor:pointer}
+    .modal-table td,.modal-table th{padding:8px;border:1px solid #ddd}
+
+    .total-row{font-weight:bold;background:#f1f6fb}
+
     .form-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
     .form-row input,.form-row select{flex:1;min-width:120px}
+
+    /* Responsive: mobile-friendly table -> card */
+    @media (max-width: 768px) {
+      .nav-toggle{display:block}
+      .nav-links{position:fixed;left:0;right:0;top:56px;background:var(--blue);flex-direction:column;padding:8px 12px;display:none}
+      .nav-links a{display:block;padding:12px 8px;border-radius:6px;margin:6px 0}
+      .container{padding:12px;margin:72px 12px 26px}
+      table, thead, tbody, th, td, tr { display:block; width:100%;}
+      th{display:none}
+      tr{margin-bottom:12px;border-radius:10px;background:var(--card);box-shadow:0 1px 3px rgba(16,24,40,0.04);padding:10px}
+      td{
+        display:flex;
+        justify-content:space-between;
+        padding:8px 10px;
+        border:none;
+        font-size:15px;
+      }
+      td::before{
+        content:attr(data-label);
+        font-weight:600;
+        color:#4b5563;
+        margin-right:8px;
+        flex:1;
+        text-align:left;
+      }
+      td > *{flex:1}
+      input, button, select{width:100%;font-size:16px;padding:12px;border-radius:10px}
+      .small-btn{padding:12px 14px;font-size:16px}
+      .close-bill-btn{padding:12px 14px;font-size:16px}
+      .modal-content{padding:14px;border-radius:12px;height:90vh;overflow:auto}
+      .modal-table td, .modal-table th{display:table-cell}
+    }
+
+    @media (max-width:480px){
+      .nav-toggle{width:48px;height:48px;font-size:22px}
+      .nav-links a{font-size:16px;padding:14px}
+      .date-row{padding:10px 6px}
+    }
+
+    @media (min-width:769px){
+      .container{max-width:1100px;padding:20px}
+      .nav-links{display:flex}
+    }
   </style>
 </head>
 <body>
-  <nav>
-    <a href="#" class="active" onclick="showSection('mrp',event)">MRP Section</a>
-    <a href="#" onclick="showSection('bar',event)">Bar Section</a>
-    <a href="#" onclick="showSection('dashboard',event)">Dashboard</a>
+
+  <nav class="top-nav">
+    <div class="nav-left">
+      <button id="navToggle" class="nav-toggle" aria-label="Toggle menu">☰</button>
+      <div class="brand">Shop Inventory</div>
+    </div>
+
+    <div class="nav-links" id="navLinks">
+      <a href="#" class="active" onclick="showSection('mrp', event)">MRP Section</a>
+      <a href="#" onclick="showSection('bar', event)">Bar Section</a>
+      <a href="#" onclick="showSection('dashboard', event)">Dashboard</a>
+    </div>
   </nav>
 
+  <!-- MRP -->
   <div id="mrp" class="container active-section">
     <h2>MRP Section</h2>
-    <table id="mrpTable"><thead><tr>
-      <th>Items</th><th>Opening Balance</th><th>Amt per Quantity</th><th>Total</th><th>Closing Balance</th><th>Sales</th><th>Action</th>
-    </tr></thead><tbody></tbody></table>
+    <table id="mrpTable">
+      <thead>
+        <tr>
+          <th>Items</th>
+          <th>Opening Balance</th>
+          <th>Amt per Quantity</th>
+          <th>Total</th>
+          <th>Closing Balance</th>
+          <th>Sales</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
+  <!-- BAR -->
   <div id="bar" class="container">
     <h2>Bar Section</h2>
-    <table id="barTable"><thead><tr><th>Items</th><th>Stock</th><th>Amt per Quantity</th><th>Sales</th></tr></thead><tbody></tbody></table>
+    <table id="barTable">
+      <thead>
+        <tr>
+          <th>Items</th>
+          <th>Stock</th>
+          <th>Amt per Quantity</th>
+          <th>Sales</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
+  <!-- DASHBOARD -->
   <div id="dashboard" class="container">
     <h2>Daily Sales Report</h2>
     <div class="daily-sales" id="dailySales"></div>
   </div>
 
+  <!-- MODAL -->
   <div id="salesModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -72,13 +201,13 @@
       </div>
 
       <div id="modalBody">
-        <!-- existing table -->
         <table class="modal-table" id="modalTable">
-          <thead><tr><th>Product</th><th>MRP Qty</th><th>Bar Qty</th><th>Total Sales (₹)</th></tr></thead>
+          <thead>
+            <tr><th>Product</th><th>MRP Qty</th><th>Bar Qty</th><th>Total Sales (₹)</th></tr>
+          </thead>
           <tbody></tbody>
         </table>
 
-        <!-- add/edit form -->
         <div style="margin-top:12px;">
           <h4>Add / Edit Sold Item for this date</h4>
           <div class="form-row">
@@ -98,281 +227,354 @@
     </div>
   </div>
 
-  <script>
-    const defaultItems = [
-      "2 Litre Water","1 Liter water","500 ML water","soda 750ml",
-      "600ml cool drinks","250ml cool drinks","5rs glass","3rs glass",
-      "mixer","cover big","cover medium","cover small"
-    ];
+<script>
+  // Config & defaults
+  const API_BASE = "http://localhost:5000/api";
+  const defaultItems = [
+    "2 Litre Water","1 Liter water","500 ML water","soda 750ml",
+    "600ml cool drinks","250ml cool drinks","5rs glass","3rs glass",
+    "mixer","cover big","cover medium","cover small"
+  ];
 
-    const API_BASE = "http://localhost:5000/api";
-    let mrpData = [], barData = [], dailySales = {}; // dailySales keys: ISO 'YYYY-MM-DD'
-    let currentModalDate = null;
+  // State
+  let mrpData = [], barData = [], dailySales = {}; // dailySales keys are ISO 'YYYY-MM-DD'
+  let currentModalDate = null;
 
-    // --- normalize existing dailySales keys to ISO on load
-    function normalizeDailySales(raw) {
-      const out = {};
-      Object.keys(raw || {}).forEach(key => {
-        const iso = toISO(key);
-        out[iso] = raw[key];
-      });
-      return out;
-    }
+  // ---------- Helpers ----------
+  function toISO(dateLike){
+    if(!dateLike) return new Date().toISOString().split('T')[0];
+    if(typeof dateLike === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateLike)) return dateLike;
+    const d = new Date(dateLike);
+    if(isNaN(d)) return new Date().toISOString().split('T')[0];
+    return d.toISOString().split('T')[0];
+  }
+  function isoToDisplay(iso){
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString();
+  }
 
-    // convert many date inputs into ISO YYYY-MM-DD
-    function toISO(dateLike) {
-      // if already ISO-like
-      if (typeof dateLike === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateLike)) return dateLike;
-      const d = new Date(dateLike);
-      if (isNaN(d)) return (new Date()).toISOString().split('T')[0];
-      return d.toISOString().split('T')[0];
-    }
+  // Normalize any old keys (like locale strings) into ISO storage format
+  function normalizeDailySales(raw){
+    const out = {};
+    Object.keys(raw || {}).forEach(k=>{
+      const iso = toISO(k);
+      out[iso] = raw[k];
+    });
+    return out;
+  }
 
-    // convert ISO to locale display
-    function isoToDisplay(iso) {
-      const d = new Date(iso + "T00:00:00");
-      return d.toLocaleDateString();
-    }
+  // ---------- Storage ----------
+  function saveData(){
+    localStorage.setItem("mrpData", JSON.stringify(mrpData));
+    localStorage.setItem("barData", JSON.stringify(barData));
+    localStorage.setItem("dailySales", JSON.stringify(dailySales));
+  }
 
-    // load & migrate data
-    function loadData(){
-      const mrp = localStorage.getItem("mrpData");
-      const bar = localStorage.getItem("barData");
-      const sales = localStorage.getItem("dailySales");
-      if (mrp) mrpData = JSON.parse(mrp);
-      if (bar) barData = JSON.parse(bar);
-      if (sales) {
+  function loadData(){
+    const mrp = localStorage.getItem("mrpData");
+    const bar = localStorage.getItem("barData");
+    const sales = localStorage.getItem("dailySales");
+    if(mrp) mrpData = JSON.parse(mrp);
+    if(bar) barData = JSON.parse(bar);
+    if(sales){
+      try {
         const raw = JSON.parse(sales);
         dailySales = normalizeDailySales(raw);
-        // ensure arrays (in older format each value could be array of entries)
-        Object.keys(dailySales).forEach(k => {
-          if (!Array.isArray(dailySales[k])) dailySales[k] = dailySales[k];
-        });
-      }
-      if (!mrpData.length) initializeItems();
-      renderMRP(); renderBar(); renderDailySales();
-    }
-
-    function saveData(){
-      // we still save dailySales in locale/array shape for backward compatibility
-      localStorage.setItem("mrpData", JSON.stringify(mrpData));
-      localStorage.setItem("barData", JSON.stringify(barData));
-      // store using ISO keys
-      localStorage.setItem("dailySales", JSON.stringify(dailySales));
-    }
-
-    function initializeItems(){
-      mrpData = defaultItems.map(name => ({ name, opening:0, price:0, total:0, closing:0, sales:0 }));
-      barData = [];
-      saveData();
-    }
-
-    // --- MRP / Bar rendering (unchanged)
-    function showSection(section,e){
-      document.querySelectorAll(".container").forEach(div=>div.classList.remove("active-section"));
-      document.getElementById(section).classList.add("active-section");
-      document.querySelectorAll("nav a").forEach(a=>a.classList.remove("active"));
-      e.target.classList.add("active");
-    }
-
-    function renderMRP(){
-      const tbody = document.querySelector("#mrpTable tbody"); tbody.innerHTML="";
-      mrpData.forEach((item,i)=>{
-        item.total = item.opening;
-        item.closing = item.total - item.sales;
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${item.name}</td>
-          <td><input type="number" value="${item.opening}" onchange="updateOpening(${i},this.value)"></td>
-          <td><input type="number" value="${item.price}" onchange="updatePrice(${i},this.value)"></td>
-          <td>${item.total}</td><td>${item.closing}</td><td>${item.sales}</td>
-          <td><button onclick="sellFromMRP(${i})">Sell</button></td>`;
-        tbody.appendChild(tr);
-      });
-    }
-    function updateOpening(index,val){ mrpData[index].opening = parseInt(val)||0; saveData(); renderMRP(); }
-    function updatePrice(index,val){ mrpData[index].price = parseFloat(val)||0; saveData(); }
-    function sellFromMRP(index){ const qty = parseInt(prompt("Enter quantity sold:")); if(isNaN(qty)||qty<=0) return;
-      const item=mrpData[index]; if(item.closing<qty) return alert("Not enough stock!"); item.sales+=qty; item.closing=item.total-item.sales;
-      const barItem = barData.find(b=>b.name===item.name);
-      if(barItem) barItem.stock+=qty; else barData.push({name:item.name,stock:qty,price:item.price,sales:0});
-      logDailySale(item.name,qty,item.price,"MRP"); saveData(); renderMRP(); renderBar();
-    }
-
-    function renderBar(){ const tbody = document.querySelector("#barTable tbody"); tbody.innerHTML="";
-      barData.forEach((item,i)=>{ const tr=document.createElement("tr");
-        tr.innerHTML = `<td>${item.name}</td><td>${item.stock}</td><td>${item.price}</td><td><button onclick="sellFromBar(${i})">Sell</button></td>`;
-        tbody.appendChild(tr);
-      });
-    }
-    function sellFromBar(index){ const qty=parseInt(prompt("Enter quantity sold:")); if(isNaN(qty)||qty<=0) return;
-      const item = barData[index]; if(item.stock<qty) return alert("Not enough stock!"); item.stock-=qty; item.sales+=qty;
-      logDailySale(item.name,qty,item.price,"Bar"); saveData(); renderBar();
-    }
-
-    // --- Sales logging & backend sync --- store entries as array per ISO date
-    function logDailySale(name,qty,price,section,dateISO=null){
-      const iso = dateISO || toISO(new Date());
-      if(!dailySales[iso]) dailySales[iso]=[];
-      dailySales[iso].push({ name, qty, price, section });
-      saveData(); renderDailySales();
-      saveSummaryToBackend(iso);
-    }
-
-    // Build summary object (product => { mrp, bar }) and post to backend
-    function saveSummaryToBackend(dateISO){
-      const entries = dailySales[dateISO] || [];
-      const summary = {};
-      entries.forEach(s => {
-        if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0 };
-        const key = (s.section||'').toLowerCase();
-        // we will store counts (as your server expects numeric), keep same format you used earlier
-        // Your server previously expected counts; if it expects qty or amounts, adapt accordingly.
-        summary[s.name][key] += s.qty; // storing qty; server email builds amounts if needed
-      });
-      fetch(API_BASE + "/sales", {
-        method: "POST", headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ date: dateISO, sales: summary })
-      })
-      .then(r=>r.json()).then(d=>console.log("Saved summary to backend:",d)).catch(e=>console.error("Save summary error:",e));
-    }
-
-    // --- Dashboard rendering with per-date Edit + Close Bill buttons
-    function renderDailySales(){
-      const div = document.getElementById("dailySales"); div.innerHTML="";
-      // sort dates descending
-      const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
-      if(dates.length===0) div.innerHTML = "<p>No sales recorded yet.</p>";
-      dates.forEach(dateISO=>{
-        const wrapper = document.createElement("div"); wrapper.className = "date-row";
-        const left = document.createElement("div"); left.className="date-left"; left.textContent = isoToDisplay(dateISO);
-        left.onclick = ()=> openModal(dateISO);
-        const actions = document.createElement("div"); actions.className = "date-actions";
-        const editBtn = document.createElement("button"); editBtn.className="small-btn"; editBtn.textContent="Edit"; editBtn.onclick = (e)=>{ e.stopPropagation(); openModal(dateISO); };
-        const closeBtn = document.createElement("button"); closeBtn.className="close-bill-btn"; closeBtn.textContent="Close Bill"; 
-        // disable if already closed (local flag)
-        if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){ closeBtn.disabled=true; closeBtn.textContent="Closed"; }
-        closeBtn.onclick = async (e)=>{ e.stopPropagation(); if(!confirm("Send email for "+isoToDisplay(dateISO)+"?")) return;
-          // call API to send for this date
-          await closeBillFor(dateISO);
-        };
-        actions.appendChild(editBtn); actions.appendChild(closeBtn);
-        wrapper.appendChild(left); wrapper.appendChild(actions);
-        div.appendChild(wrapper);
-      });
-    }
-
-    // --- Modal open: show table of summaries and allow adding entries
-    function openModal(dateISO){
-      currentModalDate = dateISO;
-      document.getElementById("salesModal").style.display = "flex";
-      document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
-      const tbody = document.querySelector("#modalTable tbody"); tbody.innerHTML="";
-      // build summary as before (counts per section)
-      const summary = {};
-      const entries = dailySales[dateISO] || [];
-      entries.forEach(s=>{
-        if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
-        if(s.section==="MRP") summary[s.name].mrp += s.qty;
-        else summary[s.name].bar += s.qty;
-      });
-      let totalAmount = 0;
-      Object.keys(summary).forEach(p=>{
-        const mrpQty = summary[p].mrp || 0; const barQty = summary[p].bar || 0;
-        const price = summary[p].price || 0;
-        const total = (mrpQty + barQty) * price;
-        totalAmount += total;
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${p}</td><td>${mrpQty}</td><td>${barQty}</td><td>₹${(total).toFixed(2)}</td>`;
-        tbody.appendChild(tr);
-      });
-      const totalRow = document.createElement("tr"); totalRow.className="total-row";
-      totalRow.innerHTML = `<td colspan="3">Total Sales</td><td>₹${totalAmount.toFixed(2)}</td>`;
-      tbody.appendChild(totalRow);
-
-      // fill product select
-      const select = document.getElementById("addProductSelect"); select.innerHTML="";
-      defaultItems.concat(Object.keys(summary)).forEach(name=>{
-        const opt = document.createElement("option"); opt.value = name; opt.textContent = name; select.appendChild(opt);
-      });
-
-      // modal close-bill button state
-      const modalCloseBtn = document.getElementById("modalCloseBillBtn");
-      if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){
-        modalCloseBtn.disabled = true; modalCloseBtn.textContent = "Closed";
-      } else { modalCloseBtn.disabled=false; modalCloseBtn.textContent = "📨 Close Bill for this Date"; }
-    }
-
-    function closeModal(){ document.getElementById("salesModal").style.display="none"; currentModalDate=null; }
-
-    // add sold item into currentModalDate
-    function addSoldItem(){
-      if(!currentModalDate) return alert("Open a date first.");
-      const name = document.getElementById("addProductSelect").value || document.getElementById("addProductSelect").options[0].text;
-      const qty = parseInt(document.getElementById("addQty").value) || 0;
-      const price = parseFloat(document.getElementById("addPrice").value) || 0;
-      const section = document.getElementById("addSection").value || "MRP";
-      if(!name || qty<=0){ return alert("Please enter product and quantity."); }
-      // push entry
-      if(!dailySales[currentModalDate]) dailySales[currentModalDate]=[];
-      dailySales[currentModalDate].push({ name, qty, price, section });
-      saveData();
-      // update summary on backend for that date
-      saveSummaryToBackend(currentModalDate);
-      // refresh modal display
-      openModal(currentModalDate);
-      renderDailySales();
-      alert("Added sold item to " + isoToDisplay(currentModalDate));
-    }
-
-    // Save modal edits (currently already saved when adding; this keeps API sync)
-    function saveModalEdits(){
-      if(!currentModalDate) return;
-      saveData(); saveSummaryToBackend(currentModalDate);
-      alert("Saved changes for "+ isoToDisplay(currentModalDate));
-      renderDailySales();
-    }
-
-    // Close bill for a given date (UI calls this)
-    async function closeBillFor(dateISO){
-      try {
-        const resp = await fetch(API_BASE + "/send-email", {
-          method: "POST",
-          headers: { "Content-Type":"application/json" },
-          body: JSON.stringify({ date: dateISO })
-        });
-        const data = await resp.json().catch(()=>null);
-        if(!resp.ok){ alert("Server error: "+(data&&data.message?data.message:resp.status)); return; }
-        alert(data && data.message ? data.message : "Email sent for "+isoToDisplay(dateISO));
-        // mark closed locally
-        localStorage.setItem(`billClosed_${dateISO}`,'true');
-        renderDailySales();
-        // disable modal button if open for same date
-        if(currentModalDate === dateISO){
-          document.getElementById("modalCloseBillBtn").disabled = true;
-          document.getElementById("modalCloseBillBtn").textContent = "Closed";
-        }
-      } catch (err) {
-        console.error("closeBillFor error:", err);
-        alert("Failed to send email. See console.");
+      } catch(e){
+        dailySales = {};
       }
     }
+    if(!mrpData.length) initializeItems();
+    renderMRP(); renderBar(); renderDailySales();
+  }
 
-    // called by any single global Close Bill (if you keep one)
-    async function closeBill(){
-      if(!currentModalDate) return alert("Open a date first (click a date).");
-      return closeBillFor(currentModalDate);
+  function initializeItems(){
+    mrpData = defaultItems.map(name=>({ name, opening:0, price:0, total:0, closing:0, sales:0 }));
+    barData = [];
+    saveData();
+  }
+
+  // ---------- MRP & Bar ----------
+  function showSection(section,e){
+    document.querySelectorAll(".container").forEach(div=>div.classList.remove("active-section"));
+    document.getElementById(section).classList.add("active-section");
+    document.querySelectorAll(".nav-links a").forEach(a=>a.classList.remove("active"));
+    if(e && e.target) e.target.classList.add("active");
+  }
+
+  function renderMRP(){
+    const tbody = document.querySelector("#mrpTable tbody"); tbody.innerHTML="";
+    mrpData.forEach((item,i)=>{
+      item.total = item.opening;
+      item.closing = item.total - item.sales;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.name}</td>
+        <td data-label="Opening"><input type="number" value="${item.opening}" onchange="updateOpening(${i},this.value)"></td>
+        <td data-label="Amt"><input type="number" value="${item.price}" onchange="updatePrice(${i},this.value)"></td>
+        <td data-label="Total">${item.total}</td>
+        <td data-label="Closing">${item.closing}</td>
+        <td data-label="Sales">${item.sales}</td>
+        <td data-label="Action"><button onclick="sellFromMRP(${i})">Sell</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  function updateOpening(index,val){ mrpData[index].opening = parseInt(val)||0; saveData(); renderMRP(); }
+  function updatePrice(index,val){ mrpData[index].price = parseFloat(val)||0; saveData(); }
+
+  function sellFromMRP(index){
+    const qty = parseInt(prompt("Enter quantity sold:"));
+    if(isNaN(qty) || qty <= 0) return;
+    const item = mrpData[index];
+    if(item.closing < qty) return alert("Not enough stock!");
+    item.sales += qty;
+    item.closing = item.total - item.sales;
+
+    const barItem = barData.find(b=>b.name === item.name);
+    if(barItem) barItem.stock += qty;
+    else barData.push({ name: item.name, stock: qty, price: item.price, sales: 0 });
+
+    logDailySale(item.name, qty, item.price, "MRP");
+    saveData();
+    renderMRP();
+    renderBar();
+  }
+
+  function renderBar(){
+    const tbody = document.querySelector("#barTable tbody"); tbody.innerHTML="";
+    barData.forEach((item,i)=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td data-label="Item">${item.name}</td>
+        <td data-label="Stock">${item.stock}</td>
+        <td data-label="Amt">${item.price}</td>
+        <td data-label="Action"><button onclick="sellFromBar(${i})">Sell</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  function sellFromBar(index){
+    const qty = parseInt(prompt("Enter quantity sold:"));
+    if(isNaN(qty) || qty <= 0) return;
+    const item = barData[index];
+    if(item.stock < qty) return alert("Not enough stock!");
+    item.stock -= qty;
+    item.sales += qty;
+    logDailySale(item.name, qty, item.price, "Bar");
+    saveData();
+    renderBar();
+  }
+
+  // ---------- Daily sales logging ----------
+  // store individual entries per date (array)
+  function logDailySale(name, qty, price, section, dateISO = null){
+    const iso = dateISO || toISO(new Date());
+    if(!dailySales[iso]) dailySales[iso] = [];
+    dailySales[iso].push({ name, qty, price, section });
+    saveData();
+    renderDailySales();
+    // update backend summary for that date
+    saveSummaryToBackend(iso);
+  }
+
+  // Build summary (product => { mrp: qty, bar: qty }) and POST to backend /api/sales
+  function saveSummaryToBackend(dateISO){
+    const entries = dailySales[dateISO] || [];
+    const summary = {};
+    entries.forEach(s=>{
+      if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0 };
+      const k = (s.section || "").toLowerCase();
+      if(k === "mrp") summary[s.name].mrp += Number(s.qty || 0);
+      else summary[s.name].bar += Number(s.qty || 0);
+    });
+    fetch(API_BASE + "/sales", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: dateISO, sales: summary })
+    })
+    .then(r=>r.json())
+    .then(d=>console.log("Saved summary to backend:", d))
+    .catch(e=>console.error("Save summary error:", e));
+  }
+
+  // ---------- Dashboard rendering (per-date Edit + Close) ----------
+  function renderDailySales(){
+    const div = document.getElementById("dailySales"); div.innerHTML="";
+    const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
+    if(dates.length === 0){
+      div.innerHTML = "<p>No sales recorded yet.</p>";
+      return;
     }
+    dates.forEach(dateISO=>{
+      const wrapper = document.createElement("div"); wrapper.className = "date-row";
+      const left = document.createElement("div"); left.className = "date-left"; left.textContent = isoToDisplay(dateISO);
+      left.onclick = ()=> openModal(dateISO);
+      const actions = document.createElement("div"); actions.className = "date-actions";
 
-    // when page load
-    window.onload = () => { loadData(); };
+      const editBtn = document.createElement("button"); editBtn.className = "small-btn"; editBtn.textContent = "Edit";
+      editBtn.onclick = (e)=>{ e.stopPropagation(); openModal(dateISO); };
 
-    // expose functions required by inline onclicks
-    window.showSection = showSection;
-    window.sellFromMRP = sellFromMRP;
-    window.sellFromBar = sellFromBar;
-    window.closeBill = closeBill;
-    window.openModal = openModal;
-    window.closeModal = closeModal;
-  </script>
+      const closeBtn = document.createElement("button"); closeBtn.className = "close-bill-btn"; closeBtn.textContent = "Close Bill";
+      if(localStorage.getItem(`billClosed_${dateISO}`) === "true") { closeBtn.disabled = true; closeBtn.textContent = "Closed"; }
+
+      closeBtn.onclick = async (e)=>{ e.stopPropagation();
+        if(!confirm("Send email for " + isoToDisplay(dateISO) + " ?")) return;
+        await closeBillFor(dateISO);
+      };
+
+      actions.appendChild(editBtn); actions.appendChild(closeBtn);
+      wrapper.appendChild(left); wrapper.appendChild(actions);
+      div.appendChild(wrapper);
+    });
+  }
+
+  // ---------- Modal for a date ----------
+  function openModal(dateISO){
+    currentModalDate = dateISO;
+    document.getElementById("salesModal").style.display = "flex";
+    document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
+    const tbody = document.querySelector("#modalTable tbody"); tbody.innerHTML = "";
+
+    const entries = dailySales[dateISO] || [];
+    // Build summary: product => { mrp, bar, price }
+    const summary = {};
+    entries.forEach(s=>{
+      if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
+      if(s.section === "MRP") summary[s.name].mrp += s.qty;
+      else summary[s.name].bar += s.qty;
+    });
+
+    let totalAmount = 0;
+    Object.keys(summary).forEach(p=>{
+      const mrpQty = summary[p].mrp || 0; const barQty = summary[p].bar || 0;
+      const price = summary[p].price || 0;
+      const total = (mrpQty + barQty) * price;
+      totalAmount += total;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${p}</td><td>${mrpQty}</td><td>${barQty}</td><td>₹${total.toFixed(2)}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    const totalRow = document.createElement("tr"); totalRow.className = "total-row";
+    totalRow.innerHTML = `<td colspan="3">Total Sales</td><td>₹${totalAmount.toFixed(2)}</td>`;
+    tbody.appendChild(totalRow);
+
+    // fill product select with default items + existing product names
+    const select = document.getElementById("addProductSelect"); select.innerHTML = "";
+    const names = Array.from(new Set(defaultItems.concat(Object.keys(summary))));
+    names.forEach(name=>{
+      const opt = document.createElement("option"); opt.value = name; opt.textContent = name; select.appendChild(opt);
+    });
+
+    // populate price field default (try to pick price from summary or mrpData)
+    const firstName = select.options[0] ? select.options[0].value : "";
+    const knownPrice = findPriceForProduct(firstName);
+    document.getElementById("addPrice").value = knownPrice || 0;
+
+    // modal close-bill state (local flag)
+    const modalCloseBtn = document.getElementById("modalCloseBillBtn");
+    if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){
+      modalCloseBtn.disabled = true; modalCloseBtn.textContent = "Closed";
+    } else { modalCloseBtn.disabled = false; modalCloseBtn.textContent = "📨 Close Bill for this Date"; }
+  }
+
+  function closeModal(){ document.getElementById("salesModal").style.display = "none"; currentModalDate = null; }
+
+  function findPriceForProduct(name){
+    // look in mrpData and barData for a price
+    const m = mrpData.find(x=>x.name === name);
+    if(m && m.price) return m.price;
+    const b = barData.find(x=>x.name === name);
+    if(b && b.price) return b.price;
+    return 0;
+  }
+
+  // add sold item into current modal date
+  function addSoldItem(){
+    if(!currentModalDate) return alert("Open a date first.");
+    const name = document.getElementById("addProductSelect").value;
+    const qty = parseInt(document.getElementById("addQty").value) || 0;
+    const price = parseFloat(document.getElementById("addPrice").value) || 0;
+    const section = document.getElementById("addSection").value || "MRP";
+    if(!name || qty <= 0) return alert("Please enter product and quantity.");
+    if(!dailySales[currentModalDate]) dailySales[currentModalDate] = [];
+    dailySales[currentModalDate].push({ name, qty, price, section });
+    saveData();
+    saveSummaryToBackend(currentModalDate);
+    openModal(currentModalDate);
+    renderDailySales();
+    alert("Added sold item to " + isoToDisplay(currentModalDate));
+  }
+
+  function saveModalEdits(){
+    if(!currentModalDate) return;
+    saveData(); saveSummaryToBackend(currentModalDate);
+    alert("Saved changes for " + isoToDisplay(currentModalDate));
+    renderDailySales();
+  }
+
+  // ---------- Close Bill for specific date ----------
+  async function closeBillFor(dateISO){
+    try {
+      const resp = await fetch(API_BASE + "/send-email", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ date: dateISO })
+      });
+      const data = await resp.json().catch(()=>null);
+      if(!resp.ok){
+        alert("Server error: " + (data && data.message ? data.message : resp.status));
+        return;
+      }
+      alert(data && data.message ? data.message : "Email sent for " + isoToDisplay(dateISO));
+      // mark closed locally
+      localStorage.setItem(`billClosed_${dateISO}`, 'true');
+      renderDailySales();
+      if(currentModalDate === dateISO){
+        const btn = document.getElementById("modalCloseBillBtn");
+        btn.disabled = true; btn.textContent = "Closed";
+      }
+    } catch (err) {
+      console.error("closeBillFor error:", err);
+      alert("Failed to send email. See console.");
+    }
+  }
+
+  // a small global closeBill wrapper (if you want to use global button)
+  function closeBill(){
+    if(!currentModalDate) return alert("Open a date first (click a date).");
+    return closeBillFor(currentModalDate);
+  }
+
+  // ---------- Init & expose ----------
+  window.showSection = showSection;
+  window.sellFromMRP = sellFromMRP;
+  window.sellFromBar = sellFromBar;
+  window.closeBill = closeBill;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.addSoldItem = addSoldItem;
+  window.saveModalEdits = saveModalEdits;
+
+  window.onload = () => {
+    loadData();
+    // mobile nav toggle wiring
+    const navToggle = document.getElementById('navToggle');
+    const navLinks = document.getElementById('navLinks');
+    if(navToggle && navLinks){
+      navToggle.addEventListener('click', ()=> {
+        const visible = navLinks.style.display === 'flex' || navLinks.style.display === 'block';
+        navLinks.style.display = visible ? 'none' : 'flex';
+      });
+      navLinks.querySelectorAll('a').forEach(a=>{
+        a.addEventListener('click', ()=> { if(window.innerWidth <= 768) navLinks.style.display = 'none'; });
+      });
+      window.addEventListener('resize', ()=> { if(window.innerWidth > 768) navLinks.style.display = 'flex'; });
+    }
+    // ensure buttons have comfortable touch size
+    document.querySelectorAll('button').forEach(b=>{ if(b.offsetHeight < 44) b.style.minHeight = '44px'; });
+  };
+</script>
 </body>
 </html>
