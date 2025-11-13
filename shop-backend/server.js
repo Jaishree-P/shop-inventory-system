@@ -1,10 +1,10 @@
-// server.js — Using RESEND for Email (Best for Render)
+// server.js — Using BREVO for Email (No Domain Needed)
 
 // ----------------- IMPORTS --------------------
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
-const { Resend } = require("resend");
+const SibApiV3Sdk = require("sib-api-v3-sdk");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,20 +13,21 @@ app.use(express.json());
 app.use(cors());
 
 // ----------------- LOAD ENV --------------------
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM;
 const EMAIL_TO = process.env.EMAIL_TO;
 
-if (!RESEND_API_KEY || !EMAIL_FROM || !EMAIL_TO) {
+if (!BREVO_API_KEY || !EMAIL_FROM || !EMAIL_TO) {
   console.error("❌ Missing environment variables!");
   console.error("Required:");
-  console.error("RESEND_API_KEY");
+  console.error("BREVO_API_KEY");
   console.error("EMAIL_FROM");
   console.error("EMAIL_TO");
 }
 
-// Create resend client
-const resend = new Resend(RESEND_API_KEY);
+// Configure Brevo
+SibApiV3Sdk.ApiClient.instance.authentications["api-key"].apiKey = BREVO_API_KEY;
+const brevoApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 // ----------------- DATA FILE --------------------
 const DATA_FILE = "salesData.json";
@@ -98,10 +99,12 @@ app.get("/api/sales", (req, res) => {
   }
 });
 
-// SEND EMAIL
+// SEND EMAIL via BREVO
 app.post("/api/send-email", async (req, res) => {
   try {
-    const dateISO = req.body?.date || new Date().toISOString().split("T")[0];
+    const dateISO =
+      req.body?.date || new Date().toISOString().split("T")[0];
+
     console.log("📨 Send email requested for:", dateISO);
 
     const data = getData();
@@ -113,21 +116,24 @@ app.post("/api/send-email", async (req, res) => {
 
     const { html, total } = buildReportHtml(dateISO, daySales);
 
-    // use RESEND
-    const emailResponse = await resend.emails.send({
-      from: EMAIL_FROM,
-      to: EMAIL_TO,
+    // Send via Brevo
+    await brevoApi.sendTransacEmail({
+      sender: { email: EMAIL_FROM },
+      to: [{ email: EMAIL_TO }],
       subject: `Daily Sales Report - ${dateISO} (Units: ${total})`,
-      html
+      htmlContent: html,
     });
 
-    console.log("📧 Resend API Response:", emailResponse);
+    console.log("📧 Brevo email sent successfully");
 
     return res.json({ success: true, message: "Email sent" });
-
   } catch (err) {
-    console.error("❌ Email error:", err);
-    res.status(500).json({ success: false, message: "Email failed", error: err.message });
+    console.error("❌ BREVO email error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Email failed",
+      error: err.message,
+    });
   }
 });
 
