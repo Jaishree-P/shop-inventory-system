@@ -1,11 +1,9 @@
 // server.js - Daily Sales Email Sender + Sales Storage
 // ----------------------------------------------------
-// This version correctly loads environment variables,
-// works on Render, uses Gmail App Password, and has
-// detailed logging for debugging email issues.
+// Works on Render without dotenv. Make sure EMAIL_USER and EMAIL_PASS
+// are added in Render → Environment Variables.
 
-// <<<<<< IMPORTANT
-
+// ----------------- IMPORTS --------------------
 const express = require("express");
 const fs = require("fs");
 const nodemailer = require("nodemailer");
@@ -33,32 +31,28 @@ function getData() {
 }
 
 // ----------------- EMAIL SETTINGS --------------------
-
 const EMAIL_USER = process.env.EMAIL_USER;
 const EMAIL_PASS = process.env.EMAIL_PASS;
 
 if (!EMAIL_USER || !EMAIL_PASS) {
-  console.error("❌ ERROR: EMAIL_USER or EMAIL_PASS NOT FOUND in environment variables!");
-  console.error("Render → Dashboard → Environment → Add:");
-  console.error("EMAIL_USER = your gmail address");
-  console.error("EMAIL_PASS = gmail app password");
+  console.error("❌ ERROR: Missing EMAIL_USER or EMAIL_PASS environment variables!");
+  console.error("➡️ Add them inside Render → Dashboard → Environment.");
 }
 
-// Gmail transporter
+// Gmail transporter (Gmail App Password required)
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: EMAIL_USER,
     pass: EMAIL_PASS
   },
-  debug: true // useful for Render logs
+  debug: true
 });
 
 // verify transporter at startup
 transporter.verify((err, success) => {
   if (err) {
-    console.error("🔴 Nodemailer verify FAILED:");
-    console.error(err.message || err);
+    console.error("🔴 Nodemailer verify FAILED:", err.message || err);
   } else {
     console.log("🟢 Nodemailer is ready to send emails");
   }
@@ -144,7 +138,7 @@ app.post("/api/send-email", async (req, res) => {
 
     const mailOptions = {
       from: EMAIL_USER,
-      to: EMAIL_USER, // send to yourself
+      to: EMAIL_USER,
       subject: `Daily Sales Report - ${dateISO} | Total Units: ${total}`,
       html
     };
