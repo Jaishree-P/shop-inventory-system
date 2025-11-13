@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shop Inventory System</title>
+
   <style>
     :root{
       --blue:#2f78b4;
@@ -11,609 +12,227 @@
       --muted:#f1f6fb;
       --card:#ffffff;
       --radius:10px;
-      --gap:10px;
       --text-size:15px;
       --btn-height:34px;
-      --view-color:#1976d2;    /* new view color (blue) */
-      --edit-color:#ff9800;    /* new edit color (orange) */
     }
+
     *{box-sizing:border-box}
-    html,body{height:100%}
     body{
-      font-family: "Poppins", sans-serif;
       margin:0;
-      background-color:#f4f8fc;
-      color:#222;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-      line-height:1.3;
-      -webkit-tap-highlight-color: transparent;
+      font-family:"Poppins",sans-serif;
+      background:#f4f8fc;
     }
 
-    /* NAV */
     nav {
-      background-color: var(--blue);
-      color: white;
-      padding: 10px 12px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      overflow-x: auto;
-      white-space: nowrap;
-      position: sticky;
-      top: 0;
-      z-index: 40;
+      background:var(--blue);
+      color:#fff;
+      padding:10px;
+      display:flex;
+      gap:12px;
+      overflow-x:auto;
+      position:sticky;
+      top:0;
+      z-index:20;
     }
-    nav .brand { font-weight:700; margin-right:8px; padding-right:8px; border-right:1px solid rgba(255,255,255,0.12) }
-    nav a {
-      color: white;
-      text-decoration: none;
-      font-weight: 600;
-      margin: 0;
-      padding: 8px 12px;
-      border-radius: 8px;
-      display: inline-block;
-      font-size: var(--text-size);
-    }
-    nav a.active, nav a:hover { background-color: var(--blue-darker); }
-
-    /* containers */
-    .container { display: none; padding: 14px; max-width: 1100px; margin: 12px auto; }
-    .active-section { display: block; }
-    h2 { color: var(--blue-darker); text-align:center; margin:8px 0 18px 0; font-size:18px }
-
-    /* tables */
-    .table-wrap { width: 100%; overflow-x:auto; -webkit-overflow-scrolling: touch; }
-    table {
-      width: 100%;
-      min-width: 760px;
-      border-collapse: collapse;
-      background: var(--card);
-      border-radius: var(--radius);
-      overflow: hidden;
-      font-size: var(--text-size);
-    }
-    th, td {
-      padding: 10px 12px;
-      text-align: center;
-      border-bottom: 1px solid #e9eef6;
-      vertical-align: middle;
-    }
-    th { background: var(--muted); font-weight:700; }
-
-    input[type="number"], select {
-      padding: 8px 10px;
-      border: 1px solid #d5dce8;
-      border-radius: 8px;
-      outline: none;
-      font-size: 15px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    /* action buttons compact */
-    .action-cell { display:flex; gap:8px; justify-content:center; align-items:center; }
-    .btn {
-      height: var(--btn-height);
-      min-width: 100px;
-      padding: 0 10px;
-      border-radius: 8px;
-      border: none;
-      color: white;
-      cursor: pointer;
+    nav a{
+      color:#fff;
+      padding:8px 12px;
+      border-radius:8px;
+      text-decoration:none;
       font-weight:600;
-      display:inline-flex;
+    }
+    nav a.active{
+      background:var(--blue-darker);
+    }
+
+    .container{
+      display:none;
+      padding:14px;
+      max-width:1100px;
+      margin:auto;
+    }
+    .active-section{
+      display:block;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+      border-radius:10px;
+      overflow:hidden;
+      min-width:760px;
+    }
+    th,td{
+      padding:10px;
+      border-bottom:1px solid #e6e6e6;
+      text-align:center;
+    }
+    th{
+      background:#f1f6fb;
+    }
+
+    input,select{
+      padding:8px;
+      width:100%;
+      border:1px solid #ccc;
+      border-radius:8px;
+    }
+
+    .btn{
+      padding:8px 12px;
+      border:none;
+      border-radius:8px;
+      color:white;
+      cursor:pointer;
+      min-width:100px;
+      font-weight:600;
+    }
+    .btn.sell{background:#2fa85a;}
+    .btn.transfer{background:#2f78b4;}
+    .btn.danger{background:#d9534f;}
+    .btn.view{background:#1976d2;}
+    .btn.edit{background:#ff9800;}
+
+    .modal{
+      display:none;
+      position:fixed;
+      top:0;left:0;
+      width:100%;height:100%;
+      background:rgba(0,0,0,0.4);
       align-items:center;
       justify-content:center;
-      gap:6px;
-      font-size:13px;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+      padding:10px;
+      z-index:200;
     }
-    .btn:active{ transform: translateY(1px); }
-    .btn.transfer { background: linear-gradient(180deg,#3aa0d9,#2f78b4); }
-    .btn.sell { background: linear-gradient(180deg,#4fb86b,#2fa85a); }
-    .btn.danger { background:#d9534f; }
-    .btn.secondary { background:#6c757d; }
-
-    /* new distinct dashboard button colors */
-    .btn.view { background: linear-gradient(180deg,var(--view-color), #145ea8); }
-    .btn.view:hover { filter:brightness(.95); }
-    .btn.edit { background: linear-gradient(180deg,var(--edit-color), #e88a00); }
-    .btn.edit:hover { filter:brightness(.95); }
-
-    @media (max-width:720px){
-      :root{ --text-size:14px; --btn-height:36px; }
-      .btn { min-width:88px; font-size:14px; }
-      table { min-width:640px; }
-      th,td { padding:8px 10px; }
+    .modal-content{
+      background:#fff;
+      max-width:900px;
+      width:100%;
+      max-height:90vh;
+      overflow:auto;
+      padding:14px;
+      border-radius:12px;
     }
-    @media (max-width:420px){
-      table { min-width:600px; }
-      th, td { padding:7px 8px; font-size:14px; }
+    .modal-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
     }
 
-    /* modal */
-    .modal { display:none; position:fixed; z-index:60; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:12px; }
-    .modal-content { width:100%; max-width:900px; max-height:92vh; overflow:auto; background:#fff; border-radius:12px; padding:14px; }
-    .modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-    .close-btn{ background:none; border:none; font-size:20px; cursor:pointer; }
-    .total-row{ font-weight:700; background:#f1f6fb; }
-    .form-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
-    .info{ font-size:13px; color:#555; margin-top:8px; text-align:center; }
   </style>
 </head>
+
 <body>
-  <nav>
-    <div class="brand">Shop Inventory</div>
-    <a href="#" class="active" onclick="showSection('mrp', event)">MRP Section</a>
-    <a href="#" onclick="showSection('bar', event)">Bar Section</a>
-    <a href="#" onclick="showSection('dashboard', event)">Dashboard</a>
-  </nav>
 
-  <!-- MRP -->
-  <div id="mrp" class="container active-section">
-    <h2>MRP Section</h2>
-    <div class="table-wrap">
-      <table id="mrpTable" aria-label="MRP table">
+<!-- NAVIGATION -->
+<nav>
+  <a href="#" id="nav-mrp" class="active">MRP</a>
+  <a href="#" id="nav-bar">Bar</a>
+  <a href="#" id="nav-dashboard">Dashboard</a>
+</nav>
+
+<!-- MRP SECTION -->
+<div id="mrp" class="container active-section">
+  <h2>MRP Section</h2>
+  <div style="overflow-x:auto">
+    <table id="mrpTable">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Opening</th>
+          <th>MRP Price</th>
+          <th>Bar Price</th>
+          <th>Total</th>
+          <th>Closing</th>
+          <th>Sold</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- BAR SECTION -->
+<div id="bar" class="container">
+  <h2>Bar Section</h2>
+  <div style="overflow-x:auto">
+    <table id="barTable">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Stock</th>
+          <th>Bar Price</th>
+          <th>Sold</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="container">
+  <h2>Daily Sales Report</h2>
+  <div id="dailySales"></div>
+</div>
+
+<!-- MODAL -->
+<div id="salesModal" class="modal">
+  <div class="modal-content">
+
+    <div class="modal-header">
+      <h3 id="modalDate"></h3>
+      <button onclick="closeModal()" style="font-size:20px;border:none;background:none;">×</button>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table id="modalTable">
         <thead>
-          <tr>
-            <th>Items</th>
-            <th>Opening</th>
-            <th>MRP Price</th>
-            <th>Bar Price</th>
-            <th>Total</th>
-            <th>Closing</th>
-            <th>Sold (MRP)</th>
-            <th>Action</th>
-          </tr>
+          <tr><th>Product</th><th>MRP Qty</th><th>Bar Qty</th><th>Total</th></tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
-    <p class="info">On mobile: horizontally scroll to see all columns. All inputs are numeric-only.</p>
-  </div>
 
-  <!-- Bar -->
-  <div id="bar" class="container">
-    <h2>Bar Section</h2>
-    <div class="table-wrap">
-      <table id="barTable" aria-label="Bar table">
-        <thead>
-          <tr>
-            <th>Items</th>
-            <th>Stock (Inward)</th>
-            <th>Bar Price</th>
-            <th>Sold (Bar)</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <br>
+    <label>Add Sold Item:</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <select id="addProductSelect"></select>
+      <input id="addQty" type="number" min="1" value="1" placeholder="Qty">
+      <input id="addPrice" type="number" min="0" value="0" placeholder="Price">
+      <select id="addSection"><option>MRP</option><option>Bar</option></select>
+      <button class="btn" onclick="addSoldItem()">Add</button>
     </div>
-    <p class="info">Inputs are numeric-only (mobile numeric keyboard enabled).</p>
+
+    <br>
+    <button class="btn danger" id="modalCloseBillBtn" onclick="closeBillForDate()">📨 Close Bill</button>
   </div>
-
-  <!-- Dashboard -->
-  <div id="dashboard" class="container">
-    <h2>Daily Sales Report</h2>
-    <div id="dailySales" class="table-wrap"></div>
-    <p class="info">Each date has View / Edit / Close Bill. Click date to view details or add missing sales.</p>
-  </div>
-
-  <!-- Modal -->
-  <div id="salesModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modalDate">Sales Report</h3>
-        <button class="close-btn" onclick="closeModal()">&times;</button>
-      </div>
-
-      <div id="modalBody">
-        <div class="table-wrap" style="margin-bottom:12px;">
-          <table class="modal-table" id="modalTable" aria-label="Modal sales table">
-            <thead><tr><th>Product</th><th>MRP Qty</th><th>Bar Qty</th><th>Total Sales (₹)</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
-        <div style="margin-top:8px;">
-          <h4 style="margin:0 0 8px 0;">Add / Edit Sold Item for this date</h4>
-          <div class="form-row">
-            <select id="addProductSelect" aria-label="Select product" onchange="onModalProductChange()"></select>
-            <input id="addQty" type="number" inputmode="numeric" pattern="\d*" min="1" placeholder="Quantity" value="1" aria-label="Quantity" />
-            <input id="addPrice" type="number" inputmode="numeric" pattern="\d*" min="0" placeholder="Amt per Quantity" value="0" aria-label="Amount per quantity" />
-            <select id="addSection" aria-label="Section" onchange="onModalSectionChange()"><option>MRP</option><option>Bar</option></select>
-            <button class="btn" onclick="addSoldItem()">Add</button>
-          </div>
-        </div>
-
-        <div style="margin-top:12px; text-align:right;">
-          <button class="btn secondary" onclick="saveModalEdits()">Save</button>
-          <button class="btn danger" id="modalCloseBillBtn" onclick="closeBillForDate()">📨 Close Bill</button>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
 
 <script>
-  // ---------- Config ----------
-  const API_BASE = (function(){
-    if(location.protocol === "file:") return "http://localhost:5000/api";
-    return `http://${location.hostname}:5000/api`;
-  })();
+/*-----------------------------------------------------*
+ *  ✔ FINAL, CORRECT API BASE FOR RENDER BACKEND
+ *-----------------------------------------------------*/
+const API_BASE = "https://shop-inventory-system-gcil.onrender.com/api";
 
-  const defaultItems = [
-    "2 Litre Water","1 Liter water","500 ML water","soda 750ml",
-    "600ml cool drinks","250ml cool drinks","5rs glass","3rs glass",
-    "mixer","cover big","cover medium","cover small"
-  ];
+/*
+⚠ IMPORTANT:
+Paste your ENTIRE JavaScript logic BELOW this comment.
+Do NOT change the API paths inside your logic — because
+they will now automatically point to:
 
-  // ---------- State ----------
-  let mrpData = [], barData = [], dailySales = {}; // dailySales[ISO] = [{name, qty, price, section}]
-  let currentModalDate = null;
+    https://shop-inventory-system-gcil.onrender.com/api/...
 
-  // ---------- Helpers ----------
-  function toISO(dateLike){
-    if(!dateLike) return new Date().toISOString().split('T')[0];
-    if(typeof dateLike === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateLike)) return dateLike;
-    const d = new Date(dateLike);
-    if(isNaN(d)) return new Date().toISOString().split('T')[0];
-    return d.toISOString().split('T')[0];
-  }
-  function isoToDisplay(iso){
-    const d = new Date(iso + "T00:00:00");
-    return d.toLocaleDateString();
-  }
-  function normalizeDailySales(raw){
-    const out = {};
-    Object.keys(raw || {}).forEach(k => { out[toISO(k)] = raw[k]; });
-    return out;
-  }
+Example:
+fetch(API_BASE + "/sales")
+fetch(API_BASE + "/send-email")
 
-  // ---------- Storage ----------
-  function saveData(){
-    localStorage.setItem("mrpData", JSON.stringify(mrpData));
-    localStorage.setItem("barData", JSON.stringify(barData));
-    localStorage.setItem("dailySales", JSON.stringify(dailySales));
-  }
-  function loadData(){
-    const mrp = localStorage.getItem("mrpData");
-    const bar = localStorage.getItem("barData");
-    const sales = localStorage.getItem("dailySales");
-    if(mrp) mrpData = JSON.parse(mrp);
-    if(bar) barData = JSON.parse(bar);
-    if(sales){
-      try { dailySales = normalizeDailySales(JSON.parse(sales)); } catch(e){ dailySales = {}; }
-    }
-    if(!mrpData.length) initializeItems();
-    renderMRP(); renderBar(); renderDailySales();
-  }
-  function initializeItems(){
-    mrpData = defaultItems.map(name => ({ name, opening:0, mrpPrice:0, barPrice:0, total:0, transferred:0, sales:0 }));
-    barData = [];
-    saveData();
-  }
-
-  // ---------- UI helpers ----------
-  function showSection(section,e){
-    document.querySelectorAll(".container").forEach(div=>div.classList.remove("active-section"));
-    document.getElementById(section).classList.add("active-section");
-    document.querySelectorAll("nav a").forEach(a=>a.classList.remove("active"));
-    if(e && e.currentTarget) e.currentTarget.classList.add("active");
-  }
-
-  // ---------- MRP & Bar ----------
-  function renderMRP(){
-    const tbody = document.querySelector("#mrpTable tbody"); tbody.innerHTML = "";
-    mrpData.forEach((item,i)=>{
-      item.total = item.opening;
-      const closing = item.total - (item.sales || 0) - (item.transferred || 0);
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${item.name}</td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.opening}" onchange="updateOpening(${i}, this.value)"></td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.mrpPrice}" onchange="updateMRPPrice(${i}, this.value)"></td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.barPrice}" onchange="updateBarPriceInMRP(${i}, this.value)"></td>
-        <td>${item.total}</td>
-        <td>${closing}</td>
-        <td>${item.sales || 0}</td>
-        <td><div class="action-cell">
-             <button class="btn transfer" onclick="transferToBar(${i})">⇄ Transfer</button>
-             <button class="btn sell" onclick="sellFromMRP(${i})">💲 Sell</button>
-           </div></td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function updateOpening(index, val){ mrpData[index].opening = parseInt(val) || 0; saveData(); renderMRP(); }
-  function updateMRPPrice(index, val){ mrpData[index].mrpPrice = parseFloat(val) || 0; saveData(); renderMRP(); }
-  function updateBarPriceInMRP(index, val){
-    mrpData[index].barPrice = parseFloat(val) || 0;
-    const name = mrpData[index].name;
-    const b = barData.find(x=>x.name === name);
-    if(b) b.price = mrpData[index].barPrice;
-    saveData(); renderMRP(); renderBar();
-  }
-
-  // TRANSFER behavior: move from MRP to BAR as INWARD (increase bar stock), NOT a sale
-  function transferToBar(index){
-    let qtyStr = prompt("Enter quantity to TRANSFER to Bar (numbers only). This will be added to Bar stock (inward):");
-    if(qtyStr === null) return;
-    const qty = parseInt(qtyStr.replace(/\D/g,'')) || 0;
-    if(qty <= 0) return alert("Please enter a positive number.");
-    const item = mrpData[index];
-    const closing = item.total - (item.sales || 0) - (item.transferred || 0);
-    if(closing < qty) return alert("Not enough stock in MRP to transfer!");
-    // reduce available from MRP by marking transferred
-    item.transferred = (item.transferred || 0) + qty;
-
-    // add to bar stock (inward)
-    const price = item.barPrice || item.mrpPrice || 0;
-    const barItem = barData.find(b => b.name === item.name);
-    if(barItem) {
-      barItem.stock = (barItem.stock || 0) + qty;
-      if(!barItem.price && price) barItem.price = price;
-    } else {
-      barData.push({ name: item.name, stock: qty, price: price, sales: 0 });
-    }
-
-    saveData(); renderMRP(); renderBar();
-    alert(`Transferred ${qty} × ${item.name} to Bar (inward).`);
-  }
-
-  function sellFromMRP(index){
-    let qtyStr = prompt("Enter quantity sold at MRP price (numbers only):");
-    if(qtyStr === null) return;
-    const qty = parseInt(qtyStr.replace(/\D/g,'')) || 0;
-    if(qty <= 0) return alert("Please enter a positive number.");
-    const item = mrpData[index];
-    const closing = item.total - (item.sales || 0) - (item.transferred || 0);
-    if(closing < qty) return alert("Not enough stock in MRP to sell!");
-    item.sales = (item.sales || 0) + qty;
-
-    const price = item.mrpPrice || 0;
-    const dateISO = toISO(new Date());
-    logDailySale(item.name, qty, price, "MRP", dateISO);
-
-    saveData(); renderMRP(); renderBar();
-    alert(`Sold ${qty} × ${item.name} at MRP ₹${price}`);
-  }
-
-  function renderBar(){
-    const tbody = document.querySelector("#barTable tbody"); tbody.innerHTML = "";
-    barData.forEach((item,i)=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${item.name}</td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.stock}" onchange="updateBarStock(${i}, this.value)"></td>
-        <td><input type="number" inputmode="numeric" pattern="\\d*" min="0" value="${item.price}" onchange="updateBarPrice(${i}, this.value)"></td>
-        <td>${item.sales || 0}</td>
-        <td><div class="action-cell"><button class="btn sell" onclick="sellFromBar(${i})">💲 Sell</button></div></td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-  function updateBarStock(i, val){ barData[i].stock = parseInt(val) || 0; saveData(); renderBar(); }
-  function updateBarPrice(i, val){ barData[i].price = parseFloat(val) || 0; saveData(); renderBar(); }
-
-  // Sell from Bar at Bar price (uses barData[i].price)
-  function sellFromBar(i){
-    let qtyStr = prompt("Enter quantity sold at Bar price (numbers only):");
-    if(qtyStr === null) return;
-    const qty = parseInt(qtyStr.replace(/\D/g,'')) || 0;
-    if(qty <= 0) return alert("Please enter a positive number.");
-    const item = barData[i];
-    if(item.stock < qty) return alert("Not enough stock in Bar to sell!");
-    item.stock -= qty;
-    item.sales = (item.sales || 0) + qty;
-    const price = item.price || 0;
-    const dateISO = toISO(new Date());
-    logDailySale(item.name, qty, price, "Bar", dateISO);
-    saveData(); renderBar();
-    alert(`Sold ${qty} × ${item.name} at Bar ₹${price}`);
-  }
-
-  // ---------- Sales logging & backend sync ----------
-  function logDailySale(name, qty, price, section, dateISO = null){
-    const iso = dateISO || toISO(new Date());
-    if(!dailySales[iso]) dailySales[iso] = [];
-    dailySales[iso].push({ name, qty, price, section });
-    saveData(); renderDailySales();
-    saveSummaryToBackend(iso);
-  }
-
-  function saveSummaryToBackend(dateISO){
-    const entries = dailySales[dateISO] || [];
-    const summary = {};
-    entries.forEach(s=>{
-      if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0 };
-      const k = (s.section || "").toLowerCase();
-      if(k === "mrp") summary[s.name].mrp += Number(s.qty || 0);
-      else summary[s.name].bar += Number(s.qty || 0);
-    });
-    fetch(API_BASE + "/sales", {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ date: dateISO, sales: summary })
-    })
-    .then(r=>r.json()).then(d=>console.log("Saved summary to backend:", d)).catch(e=>console.error("Save summary error:", e));
-  }
-
-  // ---------- Dashboard ----------
-  function renderDailySales(){
-    const div = document.getElementById("dailySales"); div.innerHTML = "";
-    const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
-    if(dates.length === 0){
-      div.innerHTML = "<p>No sales recorded yet.</p>";
-      return;
-    }
-    const wrap = document.createElement("div"); wrap.style.overflowX="auto"; wrap.style.marginTop="6px";
-    const table = document.createElement("table"); table.style.minWidth="760px";
-    table.innerHTML = `<thead><tr><th>Date</th><th>MRP Items</th><th>Bar Items</th><th>Total Sales (₹)</th><th>Actions</th></tr></thead><tbody></tbody>`;
-    const tbody = table.querySelector("tbody");
-    dates.forEach(dateISO=>{
-      const entries = dailySales[dateISO] || [];
-      const summary = {}; let totalAmount = 0;
-      entries.forEach(s=>{
-        if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
-        if(s.section === "MRP") summary[s.name].mrp += s.qty;
-        else summary[s.name].bar += s.qty;
-      });
-      Object.keys(summary).forEach(p=>{
-        const price = summary[p].price || 0;
-        totalAmount += (summary[p].mrp + summary[p].bar) * Number(price || 0);
-      });
-      const tr = document.createElement("tr");
-      // NOTE: changed button classes for clearer colors: view = blue, edit = orange
-      tr.innerHTML = `<td>${isoToDisplay(dateISO)}</td>
-        <td>${Object.values(summary).reduce((a,c)=>a + (c.mrp||0),0)}</td>
-        <td>${Object.values(summary).reduce((a,c)=>a + (c.bar||0),0)}</td>
-        <td>₹${totalAmount.toFixed(2)}</td>
-        <td>
-          <button class="btn view" onclick="openModal('${dateISO}')">View</button>
-          <button class="btn edit" style="margin-left:6px" onclick="openModal('${dateISO}')">Edit</button>
-          <button class="btn danger" style="margin-left:6px" onclick="if(confirm('Send email for ${isoToDisplay(dateISO)}?')) closeBillFor('${dateISO}')">Close Bill</button>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-    wrap.appendChild(table); div.appendChild(wrap);
-  }
-
-  // ---------- Modal ----------
-  function openModal(dateISO){
-    currentModalDate = dateISO;
-    document.getElementById("salesModal").style.display = "flex";
-    document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
-    const tbody = document.querySelector("#modalTable tbody"); tbody.innerHTML = "";
-
-    const entries = dailySales[dateISO] || [];
-    const summary = {};
-    entries.forEach(s=>{
-      if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
-      if(s.section === "MRP") summary[s.name].mrp += s.qty;
-      else summary[s.name].bar += s.qty;
-    });
-
-    let totalAmount = 0;
-    Object.keys(summary).forEach(p=>{
-      const mrpQty = summary[p].mrp || 0;
-      const barQty = summary[p].bar || 0;
-      const price = summary[p].price || 0;
-      const total = (mrpQty + barQty) * price;
-      totalAmount += total;
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${p}</td><td>${mrpQty}</td><td>${barQty}</td><td>₹${total.toFixed(2)}</td>`;
-      tbody.appendChild(tr);
-    });
-
-    const totalRow = document.createElement("tr"); totalRow.className = "total-row";
-    totalRow.innerHTML = `<td colspan="3">Total Sales</td><td>₹${totalAmount.toFixed(2)}</td>`;
-    tbody.appendChild(totalRow);
-
-    // fill product select
-    const select = document.getElementById("addProductSelect"); select.innerHTML = "";
-    const names = Array.from(new Set(defaultItems.concat(Object.keys(summary))));
-    names.forEach(n => { const opt = document.createElement("option"); opt.value = n; opt.textContent = n; select.appendChild(opt); });
-
-    // auto-fill price based on selected product and section
-    setModalPriceDefaults();
-
-    const modalCloseBtn = document.getElementById("modalCloseBillBtn");
-    if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){
-      modalCloseBtn.disabled = true; modalCloseBtn.textContent = "Closed";
-    } else {
-      modalCloseBtn.disabled = false; modalCloseBtn.textContent = "📨 Close Bill for this Date";
-    }
-  }
-
-  function closeModal(){ document.getElementById("salesModal").style.display = "none"; currentModalDate = null; }
-
-  function findProductMRP(name){
-    const m = mrpData.find(x => x.name === name); return m ? Number(m.mrpPrice || 0) : 0;
-  }
-  function findProductBarPrice(name){
-    const m = mrpData.find(x => x.name === name);
-    if(m && Number(m.barPrice)) return Number(m.barPrice);
-    const b = barData.find(x => x.name === name); return b ? Number(b.price || 0) : 0;
-  }
-
-  function setModalPriceDefaults(){
-    const product = document.getElementById("addProductSelect").value;
-    const section = document.getElementById("addSection").value;
-    const priceField = document.getElementById("addPrice");
-    if(section === "MRP") priceField.value = findProductMRP(product) || 0;
-    else priceField.value = findProductBarPrice(product) || 0;
-  }
-
-  function onModalProductChange(){ setModalPriceDefaults(); }
-  function onModalSectionChange(){ setModalPriceDefaults(); }
-
-  function addSoldItem(){
-    if(!currentModalDate) return alert("Open a date first.");
-    const name = document.getElementById("addProductSelect").value;
-    const qty = parseInt(document.getElementById("addQty").value) || 0;
-    let price = parseFloat(document.getElementById("addPrice").value) || 0;
-    const section = document.getElementById("addSection").value || "MRP";
-    if(!name || qty <= 0) return alert("Please enter product and numeric positive quantity.");
-
-    if(!price){
-      price = (section === "MRP") ? findProductMRP(name) : findProductBarPrice(name);
-    }
-    if(price === 0){
-      if(!confirm("Price is ₹0. Are you sure?")) return;
-    }
-    if(!dailySales[currentModalDate]) dailySales[currentModalDate] = [];
-    dailySales[currentModalDate].push({ name, qty, price, section });
-    saveData(); saveSummaryToBackend(currentModalDate);
-    openModal(currentModalDate); renderDailySales();
-    alert("Added sold item to " + isoToDisplay(currentModalDate));
-  }
-
-  function saveModalEdits(){
-    if(!currentModalDate) return;
-    saveData(); saveSummaryToBackend(currentModalDate);
-    alert("Saved changes for " + isoToDisplay(currentModalDate));
-    renderDailySales();
-  }
-
-  // ---------- Close bill ----------
-  async function closeBillFor(dateISO){
-    try {
-      const resp = await fetch(API_BASE + "/send-email", {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify({ date: dateISO })
-      });
-      const data = await resp.json().catch(()=>null);
-      if(!resp.ok){
-        alert("Server error: " + (data && data.message ? data.message : resp.status));
-        return;
-      }
-      alert(data && data.message ? data.message : "Email sent for " + isoToDisplay(dateISO));
-      localStorage.setItem(`billClosed_${dateISO}`, 'true');
-      renderDailySales();
-      if(currentModalDate === dateISO){
-        const btn = document.getElementById("modalCloseBillBtn"); if(btn){ btn.disabled = true; btn.textContent = "Closed"; }
-      }
-    } catch (err) {
-      console.error("closeBillFor error:", err);
-      alert("Failed to send email. See console.");
-    }
-  }
-  function closeBillForDate(){ if(currentModalDate) closeBillFor(currentModalDate); }
-
-  // ---------- Init & expose ----------
-  window.onload = () => { loadData(); };
-  window.showSection = showSection;
-  window.transferToBar = transferToBar;
-  window.sellFromMRP = sellFromMRP;
-  window.sellFromBar = sellFromBar;
-  window.openModal = openModal;
-  window.closeModal = closeModal;
-  window.addSoldItem = addSoldItem;
-  window.saveModalEdits = saveModalEdits;
-  window.closeBillFor = closeBillFor;
+Everything works.
+*/
 </script>
+
 </body>
 </html>
