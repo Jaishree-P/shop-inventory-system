@@ -966,26 +966,38 @@ document.getElementById("modalCloseBillBtn").addEventListener("click", ()=> { if
 /* ---------------------------
    Init & bindings
    --------------------------- */
+/* ---------------------------
+   Init & bindings
+   --------------------------- */
 document.addEventListener("DOMContentLoaded", async ()=> {
-  // load local data (do NOT clear automatically)
+
+  // DO NOT CLEAR LOCAL DATA
+  // (so client can continue using stored values)
+  // clearAllLocal();
+
+  // Load local data ONLY (MRP, Bar, Dashboard)
   loadLocalData();
 
-  // try to merge server summaries (non-destructive)
-  await fetchSalesFromBackend();
+  // ❌ IMPORTANT: Do NOT load backend data — prevents restoring deleted days
+  // await fetchSalesFromBackend();
 
-  // render UI
-  renderMRP(); renderBar(); renderDailySales();
+  // Now render the UI
+  renderMRP();
+  renderBar();
+  renderDailySales();
 
-  // expose functions globally
+  // expose global functions
   window.showSection = showSection;
   window.transferToBar = transferToBar;
   window.sellFromMRP = sellFromMRP;
   window.sellFromBar = sellFromBar;
   window.openModal = openModal;
   window.closeModal = closeModal;
+  window.addSoldItem = ()=>{}; 
+  window.saveModalEdits = ()=>{}; 
   window.closeBillFor = closeBillFor;
-  window.undoLastActionFor = undoLastActionFor;
 });
+
 </script>
 </body>
 </html>
