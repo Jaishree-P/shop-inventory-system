@@ -319,6 +319,27 @@ function loadLocalData(){
 }
 
 /* ---------------------------
+   Clear local storage (fresh start)
+   --------------------------- */
+function clearAllLocal(){
+  try {
+    // clear main keys
+    localStorage.removeItem("mrpData");
+    localStorage.removeItem("barData");
+    localStorage.removeItem("dailySales");
+    // clear any per-date closed flags
+    Object.keys(localStorage).forEach(k=>{
+      if(k && k.startsWith("billClosed_")) localStorage.removeItem(k);
+    });
+    // reset in-memory
+    mrpData = []; barData = []; dailySales = {};
+    console.log("Local data cleared for fresh start.");
+  } catch(e){
+    console.warn("clearAllLocal failed:", e);
+  }
+}
+
+/* ---------------------------
    Backend fetch & merge
    --------------------------- */
 async function fetchSalesFromBackend(){
@@ -734,10 +755,13 @@ document.getElementById("modalCloseBillBtn").addEventListener("click", ()=> { if
    Init & bindings
    --------------------------- */
 document.addEventListener("DOMContentLoaded", async ()=> {
-  // load local
+  // CLEAR ALL LOCAL DATA so client starts fresh
+  clearAllLocal();
+
+  // load local (will be empty after clearAllLocal)
   loadLocalData();
 
-  // try to merge server summaries (non-destructive)
+  // try to merge server summaries (non-destructive) — optional; remove if you don't want server data
   await fetchSalesFromBackend();
 
   // render UI
