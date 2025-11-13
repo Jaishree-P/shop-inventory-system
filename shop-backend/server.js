@@ -4,7 +4,7 @@
 // works on Render, uses Gmail App Password, and has
 // detailed logging for debugging email issues.
 
-require("dotenv").config(); // <<<<<< IMPORTANT
+// <<<<<< IMPORTANT
 
 const express = require("express");
 const fs = require("fs");
