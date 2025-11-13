@@ -120,6 +120,7 @@
     .btn.view:hover { filter:brightness(.95); }
     .btn.edit { background: linear-gradient(180deg,var(--edit-color), #e88a00); }
     .btn.edit:hover { filter:brightness(.95); }
+    .btn.undo { background: linear-gradient(180deg,#6a8,#5a7); color:#003; min-width:84px; }
 
     @media (max-width:720px){
       :root{ --text-size:14px; --btn-height:36px; }
@@ -200,7 +201,7 @@
   <div id="dashboard" class="container">
     <h2>Daily Sales Report</h2>
     <div id="dailySales" class="table-wrap"></div>
-    <p class="small-muted">Each row: View (read-only), Edit (edit in modal), Close Bill (send email)</p>
+    <p class="small-muted">Each row: View (read-only), Edit (edit in modal), Close Bill (send email), Undo (revert last action), Delete Day</p>
   </div>
 
   <!-- Modal -->
@@ -233,6 +234,7 @@
         <div style="margin-top:12px; text-align:right;">
           <button class="btn secondary" id="modalSaveBtn">Save</button>
           <button class="btn danger" id="modalCloseBillBtn">📨 Close Bill</button>
+          <button class="btn undo" id="modalUndoBtn" title="Undo last action for this date">↶ Undo</button>
         </div>
       </div>
     </div>
@@ -241,15 +243,11 @@
 <script>
 /* ===========================
    CONFIG
-   - Uses your Render backend (HTTPS).
-   - Edit API_BASE if you want to test locally.
    =========================== */
 const API_BASE = (function(){
-  // If running as file or on localhost, use localhost backend
   if(location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1") {
     return "http://localhost:5000/api";
   }
-  // Production Render backend (HTTPS) - no port to prevent mixed content
   return "https://shop-inventory-system-gcil.onrender.com/api";
 })();
 
@@ -263,6 +261,7 @@ const defaultItems = [
 ];
 
 let mrpData = [], barData = [], dailySales = {}; // dailySales[ISO] = [{name, qty, price, section}]
+let undoStacks = {}; // undoStacks[ISO] = [ {type, payload} ... ]
 let currentModalDate = null;
 
 /* ---------------------------
@@ -290,13 +289,14 @@ function escapeHtml(unsafe){
 }
 
 /* ---------------------------
-   Local persistence
+   Persistence (localStorage)
    --------------------------- */
 function saveData(){
   try {
     localStorage.setItem("mrpData", JSON.stringify(mrpData));
     localStorage.setItem("barData", JSON.stringify(barData));
     localStorage.setItem("dailySales", JSON.stringify(dailySales));
+    localStorage.setItem("undoStacks", JSON.stringify(undoStacks));
   } catch(e){
     console.error("saveData error:", e);
   }
@@ -306,54 +306,155 @@ function loadLocalData(){
     const mrp = localStorage.getItem("mrpData");
     const bar = localStorage.getItem("barData");
     const sales = localStorage.getItem("dailySales");
+    const und = localStorage.getItem("undoStacks");
     if(mrp) mrpData = JSON.parse(mrp);
     if(bar) barData = JSON.parse(bar);
     if(sales){
       try { dailySales = normalizeDailySales(JSON.parse(sales)); } catch(e){ dailySales = {}; }
     }
+    if(und) {
+      try { undoStacks = JSON.parse(und) || {}; } catch(e){ undoStacks = {}; }
+    }
   } catch(e){
     console.warn("loadLocalData failed:", e);
-    mrpData = []; barData = []; dailySales = {};
+    mrpData = []; barData = []; dailySales = {}; undoStacks = {};
   }
   if(!Array.isArray(mrpData) || mrpData.length === 0) initializeItems();
 }
 
 /* ---------------------------
-   Clear local storage (fresh start)
+   Undo helpers
    --------------------------- */
-function clearAllLocal(){
-  try {
-    // clear main keys
-    localStorage.removeItem("mrpData");
-    localStorage.removeItem("barData");
-    localStorage.removeItem("dailySales");
-    // clear any per-date closed flags
-    Object.keys(localStorage).forEach(k=>{
-      if(k && k.startsWith("billClosed_")) localStorage.removeItem(k);
-    });
-    // reset in-memory
-    mrpData = []; barData = []; dailySales = {};
-    console.log("Local data cleared for fresh start.");
-  } catch(e){
-    console.warn("clearAllLocal failed:", e);
+function ensureUndo(dateISO){ if(!undoStacks[dateISO]) undoStacks[dateISO] = []; }
+function pushUndo(dateISO, action){
+  ensureUndo(dateISO);
+  undoStacks[dateISO].push(action);
+  saveData();
+}
+function popUndo(dateISO){
+  ensureUndo(dateISO);
+  const a = undoStacks[dateISO].pop();
+  saveData();
+  return a;
+}
+function undoAvailable(dateISO){ return Array.isArray(undoStacks[dateISO]) && undoStacks[dateISO].length > 0; }
+
+/* Apply undo for a single date (reverses last action) */
+function undoLastActionFor(dateISO){
+  if(!undoAvailable(dateISO)) { alert("Nothing to undo for this date."); return; }
+  const action = popUndo(dateISO);
+  if(!action){ alert("Undo failed."); return; }
+
+  // action types and reversal logic
+  switch(action.type){
+    case "sellMRP":{
+      // payload: {mrpIndex, qty, price, barIndexOrNull, barStockBefore, dailyIndex}
+      const p = action.payload;
+      // revert mrp sales
+      if(typeof p.mrpIndex === "number" && mrpData[p.mrpIndex]){
+        mrpData[p.mrpIndex].sales = p.mrpSalesBefore;
+      }
+      // revert bar stock+sales
+      if(typeof p.barIndex === "number" && barData[p.barIndex]){
+        barData[p.barIndex].stock = p.barStockBefore;
+        barData[p.barIndex].sales = p.barSalesBefore;
+      }
+      // remove the daily entry that was added at recorded index (or match by payload)
+      if(Array.isArray(dailySales[p.date]) && typeof p.dailyIndex === "number"){
+        // ensure index still in range
+        if(dailySales[p.date][p.dailyIndex] && dailySales[p.date][p.dailyIndex].__undoId === p.undoId){
+          dailySales[p.date].splice(p.dailyIndex,1);
+        } else {
+          // fallback: remove last matching entry with same undoId or name/qty/price/section
+          for(let i = dailySales[p.date].length-1;i>=0;i--){
+            const e = dailySales[p.date][i];
+            if(e.__undoId === p.undoId || (e.name===p.name && e.qty===p.qty && e.price===p.price && e.section==='MRP')){ dailySales[p.date].splice(i,1); break; }
+          }
+        }
+      }
+      break;
+    }
+    case "sellBar":{
+      // payload: {barIndex, qty, price, barStockBefore, barSalesBefore, dailyIndex, undoId, name, date}
+      const p = action.payload;
+      if(typeof p.barIndex === "number" && barData[p.barIndex]){
+        barData[p.barIndex].stock = p.barStockBefore;
+        barData[p.barIndex].sales = p.barSalesBefore;
+      }
+      if(Array.isArray(dailySales[p.date]) && typeof p.dailyIndex === "number"){
+        if(dailySales[p.date][p.dailyIndex] && dailySales[p.date][p.dailyIndex].__undoId === p.undoId){
+          dailySales[p.date].splice(p.dailyIndex,1);
+        } else {
+          for(let i = dailySales[p.date].length-1;i>=0;i--){
+            const e = dailySales[p.date][i];
+            if(e.__undoId === p.undoId || (e.name===p.name && e.qty===p.qty && e.price===p.price && e.section==='Bar')){ dailySales[p.date].splice(i,1); break; }
+          }
+        }
+      }
+      break;
+    }
+    case "transferToBar":{
+      // payload: {mrpIndex, transferredBefore, barIndex, barStockBefore}
+      const p = action.payload;
+      if(typeof p.mrpIndex === "number" && mrpData[p.mrpIndex]){
+        mrpData[p.mrpIndex].transferred = p.transferredBefore;
+      }
+      if(typeof p.barIndex === "number" && barData[p.barIndex]){
+        barData[p.barIndex].stock = p.barStockBefore;
+      } else if(p.barIndex === null){
+        // it was newly created - remove it
+        const idx = barData.findIndex(b => b.name === p.name);
+        if(idx !== -1) barData.splice(idx,1);
+      }
+      break;
+    }
+    case "modalAdd":{
+      // payload: {date, index}
+      const p = action.payload;
+      if(Array.isArray(dailySales[p.date])){
+        dailySales[p.date].splice(p.index,1);
+      }
+      break;
+    }
+    case "modalRemove":{
+      // payload: {date, index, entry}
+      const p = action.payload;
+      if(!Array.isArray(dailySales[p.date])) dailySales[p.date] = [];
+      dailySales[p.date].splice(p.index, 0, p.entry);
+      break;
+    }
+    case "modalSave":{
+      // payload: {date, previousEntries}
+      const p = action.payload;
+      dailySales[p.date] = JSON.parse(JSON.stringify(p.previousEntries || []));
+      break;
+    }
+    case "deleteDay":{
+      // payload: {date, previousEntries}
+      const p = action.payload;
+      if(p.previousEntries) dailySales[p.date] = p.previousEntries;
+      break;
+    }
+    default:
+      console.warn("Unknown undo type:", action.type);
   }
+
+  saveData();
+  renderMRP(); renderBar(); renderDailySales();
+  if(currentModalDate === dateISO) openModal(dateISO, { readonly:false });
+  alert("Undo applied.");
 }
 
 /* ---------------------------
-   Backend fetch & merge
+   Backend fetch & merge (non-destructive)
    --------------------------- */
 async function fetchSalesFromBackend(){
   try {
     const res = await fetch(API_BASE + "/sales", { cache: "no-store" });
-    if(!res.ok) {
-      console.warn("Backend /sales returned not ok:", res.status);
-      return;
-    }
+    if(!res.ok) { return; }
     const serverData = await res.json();
-    // serverData is summary-form: {date: {product: {mrp, bar}, ...}, ...}
     Object.keys(serverData || {}).forEach(dateISO => {
       if(!dailySales[dateISO] || dailySales[dateISO].length === 0){
-        // convert summary into entries with price=0 (we don't have price info from summary)
         const arr = [];
         const summary = serverData[dateISO] || {};
         Object.entries(summary).forEach(([product, vals]) => {
@@ -432,8 +533,20 @@ function transferToBar(index){
   const item = mrpData[index];
   const closing = Number(item.opening || 0) - Number(item.sales || 0) - Number(item.transferred || 0);
   if(closing < qty) return alert("Not enough stock in MRP to transfer!");
-  item.transferred = (item.transferred || 0) + qty;
 
+  // prepare undo record
+  const dateISO = toISO(new Date());
+  const barIndex = barData.findIndex(b => b.name === item.name);
+  const undoPayload = {
+    mrpIndex: index,
+    transferredBefore: item.transferred || 0,
+    barIndex: (barIndex >= 0 ? barIndex : null),
+    barStockBefore: (barIndex >= 0 ? barData[barIndex].stock : null),
+    name: item.name
+  };
+  pushUndo(dateISO, { type: "transferToBar", payload: Object.assign({date: dateISO}, undoPayload) });
+
+  item.transferred = (item.transferred || 0) + qty;
   const price = Number(item.barPrice || item.mrpPrice || 0);
   const barItem = barData.find(b => b.name === item.name);
   if(barItem) {
@@ -454,11 +567,46 @@ function sellFromMRP(index){
   const item = mrpData[index];
   const closing = Number(item.opening || 0) - Number(item.sales || 0) - Number(item.transferred || 0);
   if(closing < qty) return alert("Not enough stock in MRP to sell!");
+
+  // capture pre-state for undo
+  const dateISO = toISO(new Date());
+  const barIndex = barData.findIndex(b => b.name === item.name);
+  const barStockBefore = (barIndex>=0 ? barData[barIndex].stock : null);
+  const barSalesBefore = (barIndex>=0 ? barData[barIndex].sales : null);
+  const mrpSalesBefore = item.sales || 0;
+
+  // create a unique undo id so we can match entry later
+  const undoId = "u_"+Date.now()+"_"+Math.floor(Math.random()*9999);
+  const dailyIndex = (dailySales[dateISO]||[]).length;
+
+  // push undo BEFORE mutating
+  pushUndo(dateISO, {
+    type: "sellMRP",
+    payload: {
+      date: dateISO,
+      mrpIndex: index,
+      mrpSalesBefore,
+      barIndex: (barIndex>=0 ? barIndex : null),
+      barStockBefore,
+      barSalesBefore,
+      dailyIndex,
+      qty,
+      price: item.mrpPrice || 0,
+      name: item.name,
+      undoId
+    }
+  });
+
+  // mutate state
   item.sales = (item.sales || 0) + qty;
-  const price = item.mrpPrice || 0;
-  logDailySale(item.name, qty, price, "MRP");
-  saveData(); renderMRP(); renderBar();
-  alert(`Sold ${qty} × ${item.name} at MRP ₹${price}`);
+  // move into bar stock (sell from mrp doesn't always add to bar - original logic added)
+  // (we won't change bar.stock here; original flow added to bar only on transfer)
+  // Add entry to dailySales with __undoId so undo can find exact entry
+  if(!dailySales[dateISO]) dailySales[dateISO] = [];
+  dailySales[dateISO].push({ name: item.name, qty, price: item.mrpPrice || 0, section: "MRP", __undoId: undoId });
+
+  saveData(); renderMRP(); renderBar(); renderDailySales();
+  alert(`Sold ${qty} × ${item.name} at MRP ₹${item.mrpPrice || 0}`);
 }
 
 function renderBar(){
@@ -486,25 +634,55 @@ function sellFromBar(i){
   if(qty <= 0) return alert("Please enter a positive number.");
   const item = barData[i];
   if(item.stock < qty) return alert("Not enough stock in Bar to sell!");
+
+  // prepare undo payload
+  const dateISO = toISO(new Date());
+  const barStockBefore = item.stock;
+  const barSalesBefore = item.sales || 0;
+  const dailyIndex = (dailySales[dateISO]||[]).length;
+  const undoId = "u_"+Date.now()+"_"+Math.floor(Math.random()*9999);
+
+  pushUndo(dateISO, {
+    type: "sellBar",
+    payload: {
+      date: dateISO,
+      barIndex: i,
+      barStockBefore,
+      barSalesBefore,
+      dailyIndex,
+      qty,
+      price: item.price || 0,
+      name: item.name,
+      undoId
+    }
+  });
+
   item.stock -= qty;
   item.sales = (item.sales || 0) + qty;
-  const price = Number(item.price || 0);
-  logDailySale(item.name, qty, price, "Bar");
-  saveData(); renderBar();
-  alert(`Sold ${qty} × ${item.name} at Bar ₹${price}`);
+  if(!dailySales[dateISO]) dailySales[dateISO] = [];
+  dailySales[dateISO].push({ name: item.name, qty, price: item.price || 0, section: "Bar", __undoId: undoId });
+
+  saveData(); renderBar(); renderDailySales();
+  alert(`Sold ${qty} × ${item.name} at Bar ₹${item.price || 0}`);
 }
 
 /* ---------------------------
-   Sales logging & backend sync
+   Sales logging helpers (modal / manual)
    --------------------------- */
 function logDailySale(name, qty, price, section, dateISO = null){
   const iso = dateISO || toISO(new Date());
   if(!dailySales[iso]) dailySales[iso] = [];
-  dailySales[iso].push({ name, qty: Number(qty||0), price: Number(price||0), section });
+  const undoId = "u_"+Date.now()+"_"+Math.floor(Math.random()*9999);
+  dailySales[iso].push({ name, qty: Number(qty||0), price: Number(price||0), section, __undoId: undoId });
+  // push undo for modal-add style
+  pushUndo(iso, { type: "modalAdd", payload: { date: iso, index: dailySales[iso].length-1 } });
   saveData(); renderDailySales();
   saveSummaryToBackend(iso);
 }
 
+/* ---------------------------
+   Save summary to backend (same as before, non-blocking)
+   --------------------------- */
 function saveSummaryToBackend(dateISO){
   const entries = dailySales[dateISO] || [];
   const summary = {};
@@ -519,21 +697,19 @@ function saveSummaryToBackend(dateISO){
     method: "POST",
     headers: { "Content-Type":"application/json" },
     body: JSON.stringify({ date: dateISO, sales: summary })
-  })
-  .then(async r=>{
-    if(!r.ok) {
+  }).then(async r=>{
+    if(!r.ok){
       const txt = await r.text().catch(()=>null);
       console.warn("saveSummaryToBackend failed:", r.status, txt);
       return;
     }
     return r.json();
-  })
-  .then(d=>{ if(d) console.log("Saved summary to backend:", d); })
+  }).then(d=>{ if(d) console.log("Saved summary to backend:", d); })
   .catch(e=>console.error("Save summary error:", e));
 }
 
 /* ---------------------------
-   Dashboard rendering + modal
+   Dashboard rendering + modal handling
    --------------------------- */
 function renderDailySales(){
   const div = document.getElementById("dailySales"); if(!div) return;
@@ -569,39 +745,60 @@ function renderDailySales(){
         <button class="btn view" data-date="${dateISO}">View</button>
         <button class="btn edit" data-date="${dateISO}" style="margin-left:6px">Edit</button>
         <button class="btn danger" data-date="${dateISO}" style="margin-left:6px">Close Bill</button>
+        <button class="btn undo" data-date="${dateISO}" style="margin-left:6px">Undo</button>
+        <button class="btn secondary" data-date="${dateISO}" style="margin-left:6px">Delete Day</button>
       </td>`;
     tbody.appendChild(tr);
   });
   wrap.appendChild(table); div.appendChild(wrap);
 
-  // delegated handlers
-  div.querySelectorAll("button.view").forEach(b=> b.addEventListener("click", e => openModal(b.dataset.date, { readonly:true })));
-  div.querySelectorAll("button.edit").forEach(b=> b.addEventListener("click", e => openModal(b.dataset.date, { readonly:false })));
-  div.querySelectorAll("button.danger").forEach(b=> b.addEventListener("click", e => {
+  // attach handlers
+  div.querySelectorAll("button.view").forEach(b=>b.addEventListener("click", ()=>openModal(b.dataset.date, { readonly:true })));
+  div.querySelectorAll("button.edit").forEach(b=>b.addEventListener("click", ()=>openModal(b.dataset.date, { readonly:false })));
+  div.querySelectorAll("button.danger").forEach(b=>b.addEventListener("click", ()=> {
     const dateISO = b.dataset.date;
     if(confirm("Send email for " + isoToDisplay(dateISO) + " ?")) closeBillFor(dateISO);
   }));
+  div.querySelectorAll("button.undo").forEach(b=>b.addEventListener("click", ()=> {
+    const dateISO = b.dataset.date;
+    if(!undoAvailable(dateISO)) return alert("No undo available for this date.");
+    if(confirm("Undo last action for " + isoToDisplay(dateISO) + " ?")) {
+      undoLastActionFor(dateISO);
+    }
+  }));
+  div.querySelectorAll("button.secondary").forEach(b=>b.addEventListener("click", ()=> {
+    const dateISO = b.dataset.date;
+    if(!confirm("Delete entire day's data for " + isoToDisplay(dateISO) + " ? This cannot be undone (unless you use undo immediately).")) return;
+    // push undo that can restore day (so it's undoable)
+    const prev = JSON.parse(JSON.stringify(dailySales[dateISO] || []));
+    pushUndo(dateISO, { type: "deleteDay", payload: { date: dateISO, previousEntries: prev } });
+    delete dailySales[dateISO];
+    // also remove any billClosed flag
+    localStorage.removeItem(`billClosed_${dateISO}`);
+    saveData();
+    renderDailySales();
+    alert("Deleted day: " + isoToDisplay(dateISO) + ". You can undo using the Undo button for that date.");
+  }));
 }
 
-/* Modal */
-
+/* Modal open/close & edit */
 function openModal(dateISO, opts = { readonly:false }){
   currentModalDate = dateISO;
-  const modal = document.getElementById("salesModal"); if(!modal) return;
-  modal.style.display = "flex";
-  document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
+  const modal = document.getElementById("salesModal"); modal.style.display = "flex";
+  document.getElementById("modalDate").textContent = "Sales Report - " + isoToDisplay(dateISO);
   const tbody = document.querySelector("#modalTable tbody"); tbody.innerHTML = "";
 
-  const entries = dailySales[dateISO] || [];
-  entries.forEach((s, idx) => {
-    const tr = document.createElement("tr");
-    tr.dataset.idx = idx;
+  if(!dailySales[dateISO]) dailySales[dateISO] = [];
+
+  const entries = dailySales[dateISO];
+  entries.forEach((e, idx) => {
+    const tr = document.createElement("tr"); tr.dataset.idx = idx;
     tr.innerHTML = `
-      <td>${escapeHtml(s.name)}</td>
-      <td>${escapeHtml(s.section)}</td>
-      <td><input type="number" min="0" value="${Number(s.qty||0)}" ${opts.readonly ? 'disabled' : ''} class="modal-qty"></td>
-      <td><input type="number" min="0" value="${Number(s.price||0)}" ${opts.readonly ? 'disabled' : ''} class="modal-price"></td>
-      <td class="modal-amount">₹${((Number(s.qty||0)) * (Number(s.price||0))).toFixed(2)}</td>
+      <td>${escapeHtml(e.name)}</td>
+      <td>${escapeHtml(e.section)}</td>
+      <td><input class="modal-qty" type="number" min="0" value="${Number(e.qty||0)}" ${opts.readonly ? 'disabled' : ''}></td>
+      <td><input class="modal-price" type="number" min="0" value="${Number(e.price||0)}" ${opts.readonly ? 'disabled' : ''}></td>
+      <td class="modal-amount">₹${((Number(e.qty||0)) * (Number(e.price||0))).toFixed(2)}</td>
       <td>${opts.readonly ? '' : '<button class="btn danger modal-remove">Remove</button>'}</td>
     `;
     tbody.appendChild(tr);
@@ -609,24 +806,21 @@ function openModal(dateISO, opts = { readonly:false }){
 
   // product select
   const select = document.getElementById("addProductSelect"); select.innerHTML = "";
-  const names = Array.from(new Set(defaultItems.concat(entries.map(e=>e.name))));
+  const names = Array.from(new Set(defaultItems.concat(entries.map(x=>x.name))));
   names.forEach(n => { const opt = document.createElement("option"); opt.value = n; opt.textContent = n; select.appendChild(opt); });
 
   // set add defaults
   setModalPriceDefaults();
 
-  // setup buttons based on readonly
+  // setup buttons
   const addBtn = document.getElementById("modalAddBtn");
   const saveBtn = document.getElementById("modalSaveBtn");
   const closeBillBtn = document.getElementById("modalCloseBillBtn");
+  const undoBtn = document.getElementById("modalUndoBtn");
+
   addBtn.disabled = !!opts.readonly;
   saveBtn.disabled = !!opts.readonly;
-  // show closed state if already closed
-  if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){
-    closeBillBtn.disabled = true; closeBillBtn.textContent = "Closed";
-  } else {
-    closeBillBtn.disabled = false; closeBillBtn.textContent = "📨 Close Bill";
-  }
+  undoBtn.disabled = !undoAvailable(dateISO);
 
   // live update amounts
   tbody.querySelectorAll("input.modal-qty, input.modal-price").forEach(inp=>{
@@ -644,9 +838,13 @@ function openModal(dateISO, opts = { readonly:false }){
       const row = e.target.closest("tr");
       const idx = Number(row.dataset.idx);
       if(!confirm("Delete this sold item?")) return;
+      // push undo remove (so we can re-insert)
+      const entry = dailySales[dateISO][idx];
+      pushUndo(dateISO, { type: "modalRemove", payload: { date: dateISO, index: idx, entry: JSON.parse(JSON.stringify(entry)) } });
+
       dailySales[dateISO].splice(idx,1);
       saveData();
-      openModal(dateISO, opts); // re-open to refresh
+      openModal(dateISO, opts); // refresh
       renderDailySales();
     });
   });
@@ -656,6 +854,7 @@ function closeModal(){
   const modal = document.getElementById("salesModal"); if(modal) modal.style.display = "none";
   currentModalDate = null;
 }
+document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
 
 function setModalPriceDefaults(){
   const productEl = document.getElementById("addProductSelect");
@@ -664,7 +863,6 @@ function setModalPriceDefaults(){
   if(!productEl || !sectionEl || !priceField) return;
   const product = productEl.value || "";
   const section = sectionEl.value || "MRP";
-  // find price from mrpData/barData
   const m = mrpData.find(x=>x.name===product);
   if(section === "MRP"){
     priceField.value = m ? Number(m.mrpPrice || 0) : 0;
@@ -673,8 +871,6 @@ function setModalPriceDefaults(){
     priceField.value = b ? Number(b.price || 0) : (m ? Number(m.barPrice||0) : 0);
   }
 }
-
-document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
 document.getElementById("addProductSelect").addEventListener("change", setModalPriceDefaults);
 document.getElementById("addSection").addEventListener("change", setModalPriceDefaults);
 
@@ -690,17 +886,23 @@ document.getElementById("modalAddBtn").addEventListener("click", ()=>{
     price = section === "MRP" ? (mrpData.find(x=>x.name===name)?.mrpPrice||0) : (barData.find(x=>x.name===name)?.price||0);
   }
   if(!dailySales[currentModalDate]) dailySales[currentModalDate] = [];
+
+  // push undo for this add
+  const idx = dailySales[currentModalDate].length;
   dailySales[currentModalDate].push({ name, qty, price, section });
+  pushUndo(currentModalDate, { type: "modalAdd", payload: { date: currentModalDate, index: idx } });
+
   saveData(); saveSummaryToBackend(currentModalDate);
   openModal(currentModalDate, { readonly:false }); renderDailySales();
-  alert("Added sold item to " + isoToDisplay(currentModalDate));
 });
 
-/* modal save */
+/* modal save (edits entire day's entries) */
 document.getElementById("modalSaveBtn").addEventListener("click", ()=>{
   if(!currentModalDate) return;
   const tbody = document.querySelector("#modalTable tbody");
   const rows = Array.from(tbody.querySelectorAll("tr"));
+  // capture previous entries for undo
+  const previousEntries = JSON.parse(JSON.stringify(dailySales[currentModalDate] || []));
   const newEntries = rows.map(row=>{
     const name = row.children[0].textContent;
     const section = row.children[1].textContent;
@@ -708,6 +910,8 @@ document.getElementById("modalSaveBtn").addEventListener("click", ()=>{
     const price = Number(row.querySelector("input.modal-price").value || 0);
     return { name, qty, price, section };
   });
+  // push undo as modalSave to restore previousEntries if needed
+  pushUndo(currentModalDate, { type: "modalSave", payload: { date: currentModalDate, previousEntries } });
   dailySales[currentModalDate] = newEntries;
   saveData(); saveSummaryToBackend(currentModalDate);
   alert("Saved changes for " + isoToDisplay(currentModalDate));
@@ -715,38 +919,46 @@ document.getElementById("modalSaveBtn").addEventListener("click", ()=>{
   openModal(currentModalDate, { readonly:false });
 });
 
+/* modal undo button */
+document.getElementById("modalUndoBtn").addEventListener("click", ()=>{
+  if(!currentModalDate) return alert("Open a date first.");
+  if(!undoAvailable(currentModalDate)) return alert("No undo available for this date.");
+  if(confirm("Undo last action for " + isoToDisplay(currentModalDate) + " ?")) {
+    undoLastActionFor(currentModalDate);
+  }
+});
+
 /* ---------------------------
-   Close bill (send email)
+   Close bill (send email) — keep editable after send
    --------------------------- */
 async function closeBillFor(dateISO){
   try {
-    console.log("Requesting send-email for:", dateISO, "API_BASE=", API_BASE);
     const resp = await fetch(API_BASE + "/send-email", {
       method: "POST",
       headers: { "Content-Type":"application/json" },
       body: JSON.stringify({ date: dateISO })
     });
-
     const text = await resp.text();
     let data;
-    try { data = text ? JSON.parse(text) : null; } catch(e){ data = { raw: text }; }
-
+    try { data = text ? JSON.parse(text) : null; } catch(e){ data = { raw:text }; }
     if(!resp.ok){
       console.error("send-email failed", resp.status, resp.statusText, data);
-      alert("Server returned error:\nStatus: " + resp.status + "\nBody: " + (data && data.message ? data.message : JSON.stringify(data)));
+      alert("Server returned error (see console).");
       return;
     }
-
-    console.log("send-email success", data);
+    // we DO NOT lock the day; just store that we sent an email (optional)
+    const countKey = `emailSentCount_${dateISO}`;
+    const prev = parseInt(localStorage.getItem(countKey)||"0",10) || 0;
+    localStorage.setItem(countKey, String(prev+1));
     alert((data && data.message) ? data.message : ("Email sent for " + isoToDisplay(dateISO)));
-    localStorage.setItem(`billClosed_${dateISO}`, 'true');
     renderDailySales();
+    // refresh modal button state if open
     if(currentModalDate === dateISO){
-      const btn = document.getElementById("modalCloseBillBtn"); if(btn){ btn.disabled = true; btn.textContent = "Closed"; }
+      const cb = document.getElementById("modalCloseBillBtn"); if(cb) cb.textContent = "📨 Sent";
     }
   } catch (err) {
     console.error("closeBillFor error (network/exception):", err);
-    alert("Failed to send email (network or exception). See console for details.\nError: " + (err && err.message ? err.message : String(err)));
+    alert("Failed to send email (network or exception). See console for details.");
   }
 }
 document.getElementById("modalCloseBillBtn").addEventListener("click", ()=> { if(currentModalDate) closeBillFor(currentModalDate); });
@@ -755,28 +967,24 @@ document.getElementById("modalCloseBillBtn").addEventListener("click", ()=> { if
    Init & bindings
    --------------------------- */
 document.addEventListener("DOMContentLoaded", async ()=> {
-  // CLEAR ALL LOCAL DATA so client starts fresh
-  //clearAllLocal();
-
-  // load local (will be empty after clearAllLocal)
+  // load local data (do NOT clear automatically)
   loadLocalData();
 
-  // try to merge server summaries (non-destructive) — optional; remove if you don't want server data
+  // try to merge server summaries (non-destructive)
   await fetchSalesFromBackend();
 
   // render UI
   renderMRP(); renderBar(); renderDailySales();
 
-  // expose some functions globally (for inline calls)
+  // expose functions globally
   window.showSection = showSection;
   window.transferToBar = transferToBar;
   window.sellFromMRP = sellFromMRP;
   window.sellFromBar = sellFromBar;
   window.openModal = openModal;
   window.closeModal = closeModal;
-  window.addSoldItem = ()=>{}; // not used
-  window.saveModalEdits = ()=>{}; // not used
   window.closeBillFor = closeBillFor;
+  window.undoLastActionFor = undoLastActionFor;
 });
 </script>
 </body>
