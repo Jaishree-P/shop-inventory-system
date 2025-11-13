@@ -1,19 +1,32 @@
-// server.js - Daily Sales Email Sender + Sales Storage
-// ----------------------------------------------------
-// Works on Render without dotenv. Make sure EMAIL_USER and EMAIL_PASS
-// are added in Render → Environment Variables.
+// server.js — Using RESEND for Email (Best for Render)
 
 // ----------------- IMPORTS --------------------
 const express = require("express");
 const fs = require("fs");
-const nodemailer = require("nodemailer");
 const cors = require("cors");
+const { Resend } = require("resend");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(cors());
+
+// ----------------- LOAD ENV --------------------
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM;
+const EMAIL_TO = process.env.EMAIL_TO;
+
+if (!RESEND_API_KEY || !EMAIL_FROM || !EMAIL_TO) {
+  console.error("❌ Missing environment variables!");
+  console.error("Required:");
+  console.error("RESEND_API_KEY");
+  console.error("EMAIL_FROM");
+  console.error("EMAIL_TO");
+}
+
+// Create resend client
+const resend = new Resend(RESEND_API_KEY);
 
 // ----------------- DATA FILE --------------------
 const DATA_FILE = "salesData.json";
@@ -30,79 +43,48 @@ function getData() {
   return JSON.parse(fs.readFileSync(DATA_FILE));
 }
 
-// ----------------- EMAIL SETTINGS --------------------
-const EMAIL_USER = process.env.EMAIL_USER;
-const EMAIL_PASS = process.env.EMAIL_PASS;
-
-if (!EMAIL_USER || !EMAIL_PASS) {
-  console.error("❌ ERROR: Missing EMAIL_USER or EMAIL_PASS environment variables!");
-  console.error("➡️ Add them inside Render → Dashboard → Environment.");
-}
-
-// Gmail transporter (Gmail App Password required)
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS
-  },
-  debug: true
-});
-
-// verify transporter at startup
-transporter.verify((err, success) => {
-  if (err) {
-    console.error("🔴 Nodemailer verify FAILED:", err.message || err);
-  } else {
-    console.log("🟢 Nodemailer is ready to send emails");
-  }
-});
-
 // ----------------- BUILD EMAIL HTML --------------------
 function buildReportHtml(dateISO, salesObj) {
   let html = `<h2>Daily Sales Report - ${dateISO}</h2>`;
-  html += `<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">`;
-  html += `<tr style="background-color:#e6f0ff">
-             <th>Product</th>
-             <th>MRP Sales</th>
-             <th>Bar Sales</th>
+  html += `<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+           <tr style="background:#eef">
+             <th>Product</th><th>MRP Sales</th><th>Bar Sales</th>
            </tr>`;
+
   let total = 0;
 
-  for (const [product, values] of Object.entries(salesObj || {})) {
-    html += `<tr>
-              <td>${product}</td>
-              <td>${values.mrp || 0}</td>
-              <td>${values.bar || 0}</td>
-            </tr>`;
-    total += (values.mrp || 0) + (values.bar || 0);
+  for (const [product, val] of Object.entries(salesObj || {})) {
+    html += `
+      <tr>
+        <td>${product}</td>
+        <td>${val.mrp || 0}</td>
+        <td>${val.bar || 0}</td>
+      </tr>`;
+    total += (val.mrp || 0) + (val.bar || 0);
   }
 
-  html += `</table>
-           <p><b>Total Units Sold:</b> ${total}</p>`;
-
+  html += `</table><p><b>Total Units:</b> ${total}</p>`;
   return { html, total };
 }
 
-// ----------------------- API ROUTES ------------------------
+// ----------------- API ROUTES --------------------
 
-// Save sales summary for a date
+// Save summary to backend
 app.post("/api/sales", (req, res) => {
   try {
     const { date, sales } = req.body;
 
-    if (!date || !sales) {
-      return res.status(400).json({ error: "Missing date or sales field" });
-    }
+    if (!date || !sales)
+      return res.status(400).json({ error: "Missing fields" });
 
     const data = getData();
     data.dailySales[date] = sales;
     saveData(data);
 
-    return res.json({ message: "Sales saved successfully" });
+    res.json({ message: "Sales saved" });
   } catch (err) {
-    console.error("❌ Error saving sales:", err);
-    return res.status(500).json({ error: "Server error saving sales" });
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -110,64 +92,42 @@ app.post("/api/sales", (req, res) => {
 app.get("/api/sales", (req, res) => {
   try {
     const data = getData();
-    return res.json(data.dailySales);
+    res.json(data.dailySales);
   } catch (err) {
-    console.error("❌ Error reading sales:", err);
-    return res.status(500).json({ error: "Server error reading sales" });
+    res.status(500).json({ error: "Server error reading sales" });
   }
 });
 
-// SEND EMAIL for a specific date
+// SEND EMAIL
 app.post("/api/send-email", async (req, res) => {
   try {
-    const reqDate = req.body?.date || null;
-    const dateISO = reqDate || new Date().toISOString().split("T")[0];
-
-    console.log("📨 Email request received for date:", dateISO);
+    const dateISO = req.body?.date || new Date().toISOString().split("T")[0];
+    console.log("📨 Send email requested for:", dateISO);
 
     const data = getData();
     const daySales = data.dailySales[dateISO];
 
     if (!daySales) {
-      const msg = `No sales found for ${dateISO}`;
-      console.log("ℹ️", msg);
-      return res.status(200).json({ success: false, message: msg });
+      return res.json({ success: false, message: "No sales for this date" });
     }
 
     const { html, total } = buildReportHtml(dateISO, daySales);
 
-    const mailOptions = {
-      from: EMAIL_USER,
-      to: EMAIL_USER,
-      subject: `Daily Sales Report - ${dateISO} | Total Units: ${total}`,
+    // use RESEND
+    const emailResponse = await resend.emails.send({
+      from: EMAIL_FROM,
+      to: EMAIL_TO,
+      subject: `Daily Sales Report - ${dateISO} (Units: ${total})`,
       html
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error("❌ Email send FAILED:", error.message || error);
-        return res.status(500).json({
-          success: false,
-          message: "Failed to send email",
-          error: error.message || String(error)
-        });
-      }
-
-      console.log("✅ Email sent:", info.response || info);
-      return res.json({
-        success: true,
-        message: "Email sent successfully",
-        info
-      });
     });
+
+    console.log("📧 Resend API Response:", emailResponse);
+
+    return res.json({ success: true, message: "Email sent" });
 
   } catch (err) {
-    console.error("❌ Unexpected error:", err);
-    return res.status(500).json({
-      success: false,
-      message: "Unexpected server error",
-      error: err.message || String(err)
-    });
+    console.error("❌ Email error:", err);
+    res.status(500).json({ success: false, message: "Email failed", error: err.message });
   }
 });
 
