@@ -6,93 +6,201 @@
   <title>Shop Inventory System</title>
   <style>
     :root{
-      --blue:#2f78b4; --blue-darker:#246294; --muted:#f1f6fb;
-      --card:#ffffff; --radius:10px; --text-size:15px; --btn-height:36px;
-      --success:#2fa85a; --danger:#d9534f; --secondary:#6c757d;
+      --blue:#2f78b4;
+      --blue-darker:#246294;
+      --muted:#f1f6fb;
+      --card:#ffffff;
+      --radius:10px;
+      --gap:10px;
+      --text-size:15px;
+      --btn-height:34px;
+      --view-color:#1976d2;
+      --edit-color:#ff9800;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      font-family: "Poppins", sans-serif; margin:0; background:#f4f8fc; color:#222;
+      font-family: "Poppins", sans-serif;
+      margin:0;
+      background-color:#f4f8fc;
+      color:#222;
       -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.3;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    nav{ background:var(--blue); color:#fff; padding:10px 12px; display:flex; gap:12px; align-items:center; position:sticky; top:0; z-index:40;}
-    nav .brand{ font-weight:700; padding-right:8px; border-right:1px solid rgba(255,255,255,0.12)}
-    nav a{ color:#fff; text-decoration:none; font-weight:600; padding:8px 12px; border-radius:8px; display:inline-block}
-    nav a.active, nav a:hover{ background:var(--blue-darker) }
+    /* NAV */
+    nav {
+      background-color: var(--blue);
+      color: white;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow-x: auto;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    nav .brand { font-weight:700; margin-right:8px; padding-right:8px; border-right:1px solid rgba(255,255,255,0.12) }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      margin: 0;
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: inline-block;
+      font-size: var(--text-size);
+      cursor: pointer;
+    }
+    nav a.active, nav a:hover { background-color: var(--blue-darker); }
 
-    .container{ display:none; padding:14px; max-width:1100px; margin:12px auto;}
-    .active-section{ display:block;}
-    h2{ color:var(--blue-darker); text-align:center; margin:8px 0 18px 0; font-size:18px }
+    /* containers */
+    .container { display: none; padding: 14px; max-width: 1100px; margin: 12px auto; }
+    .active-section { display: block; }
+    h2 { color: var(--blue-darker); text-align:center; margin:8px 0 18px 0; font-size:18px }
 
-    .table-wrap{ width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;}
-    table{ width:100%; min-width:760px; border-collapse:collapse; background:var(--card); border-radius:var(--radius); overflow:hidden;}
-    th,td{ padding:10px 12px; text-align:center; border-bottom:1px solid #e9eef6; vertical-align:middle;}
-    th{ background:var(--muted); font-weight:700; }
+    /* tables */
+    .table-wrap { width: 100%; overflow-x:auto; -webkit-overflow-scrolling: touch; }
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      font-size: var(--text-size);
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: center;
+      border-bottom: 1px solid #e9eef6;
+      vertical-align: middle;
+    }
+    th { background: var(--muted); font-weight:700; }
 
-    input[type="number"], select, input[type="text"]{ padding:8px 10px; border:1px solid #d5dce8; border-radius:8px; outline:none; font-size:15px; width:100%; box-sizing:border-box; }
+    input[type="number"], select, input[type="text"] {
+      padding: 8px 10px;
+      border: 1px solid #d5dce8;
+      border-radius: 8px;
+      outline: none;
+      font-size: 15px;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
-    .action-cell{ display:flex; gap:8px; justify-content:center; align-items:center; flex-wrap:wrap; }
-    .btn{ height:var(--btn-height); min-width:100px; padding:0 10px; border-radius:8px; border:none; color:#fff; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px }
-    .btn.transfer{ background:linear-gradient(180deg,#3aa0d9,#2f78b4) }
-    .btn.sell{ background:linear-gradient(180deg,#4fb86b,#2fa85a) }
-    .btn.danger{ background:var(--danger) }
-    .btn.secondary{ background:var(--secondary) }
-    .btn.view{ background:linear-gradient(180deg,#1976d2,#145ea8) }
-    .btn.edit{ background:linear-gradient(180deg,#ff9800,#e88a00) }
-    .btn.undo{ background:#6a9a6a }
+    /* action buttons compact */
+    .action-cell { display:flex; gap:8px; justify-content:center; align-items:center; }
+    .btn {
+      height: var(--btn-height);
+      min-width: 100px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-weight:600;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      font-size:13px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.transfer { background: linear-gradient(180deg,#3aa0d9,#2f78b4); }
+    .btn.sell { background: linear-gradient(180deg,#4fb86b,#2fa85a); }
+    .btn.danger { background:#d9534f; }
+    .btn.secondary { background:#6c757d; }
 
-    .info{ font-size:13px; color:#555; text-align:center; margin-top:8px; }
-
-    .modal{ display:none; position:fixed; z-index:60; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:12px; }
-    .modal-content{ width:100%; max-width:920px; max-height:92vh; overflow:auto; background:#fff; border-radius:12px; padding:14px; }
-    .modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
-    .close-btn{ background:none; border:none; font-size:20px; cursor:pointer; }
-    .total-row{ font-weight:700; background:#f1f6fb; }
-
-    .small{ font-size:12px; padding:6px 8px; min-width:70px }
+    .btn.view { background: linear-gradient(180deg,var(--view-color), #145ea8); }
+    .btn.view:hover { filter:brightness(.95); }
+    .btn.edit { background: linear-gradient(180deg,var(--edit-color), #e88a00); }
+    .btn.edit:hover { filter:brightness(.95); }
 
     @media (max-width:720px){
-      :root{ --text-size:14px; --btn-height:40px }
-      table{ min-width:640px }
-      th,td{ padding:8px 10px }
+      :root{ --text-size:14px; --btn-height:36px; }
+      .btn { min-width:88px; font-size:14px; }
+      table { min-width:640px; }
+      th,td { padding:8px 10px; }
     }
+    @media (max-width:420px){
+      table { min-width:600px; }
+      th, td { padding:7px 8px; font-size:14px; }
+    }
+
+    /* modal */
+    .modal { display:none; position:fixed; z-index:60; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:12px; }
+    .modal-content { width:100%; max-width:920px; max-height:92vh; overflow:auto; background:#fff; border-radius:12px; padding:14px; }
+    .modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .close-btn{ background:none; border:none; font-size:20px; cursor:pointer; }
+    .total-row{ font-weight:700; background:#f1f6fb; }
+    .form-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+    .info{ font-size:13px; color:#555; margin-top:8px; text-align:center; }
+
+    .small-muted { font-size:13px; color:#666; }
+
   </style>
 </head>
 <body>
   <nav>
     <div class="brand">Shop Inventory</div>
-    <a href="#" id="nav-mrp" class="active" onclick="showSection('mrp', event)">MRP</a>
-    <a href="#" id="nav-bar" onclick="showSection('bar', event)">Bar</a>
-    <a href="#" id="nav-dashboard" onclick="showSection('dashboard', event)">Dashboard</a>
+    <a id="nav-mrp" class="active" onclick="showSection('mrp')">MRP Section</a>
+    <a id="nav-bar" onclick="showSection('bar')">Bar Section</a>
+    <a id="nav-dashboard" onclick="showSection('dashboard')">Dashboard</a>
   </nav>
 
   <!-- MRP -->
   <div id="mrp" class="container active-section">
     <h2>MRP Section</h2>
-    <div class="table-wrap"><table id="mrpTable">
-      <thead><tr><th>Items</th><th>Opening</th><th>MRP Price</th><th>Bar Price</th><th>Total</th><th>Closing</th><th>Sold (MRP)</th><th>Action</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-    <p class="info">Each sold item has an Undo button to revert the last sale for that product (MRP).</p>
+    <div class="table-wrap">
+      <table id="mrpTable" aria-label="MRP table">
+        <thead>
+          <tr>
+            <th>Items</th>
+            <th>Opening</th>
+            <th>MRP Price</th>
+            <th>Bar Price</th>
+            <th>Total</th>
+            <th>Closing</th>
+            <th>Sold (MRP)</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="info">On mobile: horizontally scroll to see all columns. All inputs are numeric-only.</p>
   </div>
 
   <!-- Bar -->
   <div id="bar" class="container">
     <h2>Bar Section</h2>
-    <div class="table-wrap"><table id="barTable">
-      <thead><tr><th>Items</th><th>Stock (Inward)</th><th>Bar Price</th><th>Sold (Bar)</th><th>Action</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-    <p class="info">Each sold item has an Undo button to revert the last sale for that product (Bar).</p>
+    <div class="table-wrap">
+      <table id="barTable" aria-label="Bar table">
+        <thead>
+          <tr>
+            <th>Items</th>
+            <th>Stock (Inward)</th>
+            <th>Bar Price</th>
+            <th>Sold (Bar)</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="info">Inputs are numeric-only (mobile numeric keyboard enabled).</p>
   </div>
 
   <!-- Dashboard -->
   <div id="dashboard" class="container">
     <h2>Daily Sales Report</h2>
     <div id="dailySales" class="table-wrap"></div>
-    <p class="info">Click View to inspect a date. Edit opens same modal for editing numbers. Delete removes entire day. Close Bill sends email for that day.</p>
+    <p class="small-muted">Each row: View (read-only), Edit (edit in modal), Close Bill (send email)</p>
   </div>
 
   <!-- Modal -->
@@ -100,46 +208,53 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 id="modalDate">Sales Report</h3>
-        <div>
-          <button class="small btn secondary" id="modalDeleteDayBtn">Delete Day</button>
-          <button class="small btn secondary" id="modalSaveBtn">Save</button>
-          <button class="close-btn" id="modalCloseBtn">&times;</button>
+        <button class="close-btn" id="modalCloseBtn">&times;</button>
+      </div>
+
+      <div id="modalBody">
+        <div class="table-wrap" style="margin-bottom:12px;">
+          <table class="modal-table" id="modalTable" aria-label="Modal sales table">
+            <thead><tr><th>Product</th><th>Section</th><th>Quantity</th><th>Price</th><th>Amount</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
-      </div>
 
-      <div class="table-wrap" style="margin-bottom:12px;">
-        <table class="modal-table" id="modalTable" aria-label="Modal sales table">
-          <thead><tr><th>Product</th><th>Section</th><th>Qty</th><th>Amt/Qty</th><th>Total (₹)</th><th>Actions</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div style="margin-top:8px;">
-        <h4 style="margin:0 0 8px 0;">Add / Edit Sold Item for this date</h4>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <select id="addProductSelect" aria-label="Select product"></select>
-          <input id="addQty" type="number" inputmode="numeric" pattern="\d*" min="1" placeholder="Quantity" value="1" />
-          <input id="addPrice" type="number" inputmode="numeric" pattern="\d*" min="0" placeholder="Amt per Quantity" value="0" />
-          <select id="addSection"><option>MRP</option><option>Bar</option></select>
-          <button class="btn" id="modalAddBtn">Add</button>
+        <div style="margin-top:8px;">
+          <h4 style="margin:0 0 8px 0;">Add / Edit Sold Item for this date</h4>
+          <div class="form-row">
+            <select id="addProductSelect" aria-label="Select product"></select>
+            <input id="addQty" type="number" inputmode="numeric" pattern="\d*" min="1" placeholder="Quantity" value="1" aria-label="Quantity" />
+            <input id="addPrice" type="number" inputmode="numeric" pattern="\d*" min="0" placeholder="Amt per Quantity" value="0" aria-label="Amount per quantity" />
+            <select id="addSection" aria-label="Section"><option>MRP</option><option>Bar</option></select>
+            <button class="btn" id="modalAddBtn">Add</button>
+          </div>
         </div>
-      </div>
 
-      <div style="margin-top:12px; text-align:right;">
-        <button class="btn danger" id="modalCloseBillBtn">📨 Close Bill</button>
+        <div style="margin-top:12px; text-align:right;">
+          <button class="btn secondary" id="modalSaveBtn">Save</button>
+          <button class="btn danger" id="modalCloseBillBtn">📨 Close Bill</button>
+        </div>
       </div>
     </div>
   </div>
 
 <script>
-/* ---------------------------
+/* ===========================
    CONFIG
-   --------------------------- */
-// IMPORTANT: use the HTTPS backend URL (Render) to avoid mixed content errors
-const API_BASE = "https://shop-inventory-system-gcil.onrender.com/api";
+   - Uses your Render backend (HTTPS).
+   - Edit API_BASE if you want to test locally.
+   =========================== */
+const API_BASE = (function(){
+  // If running as file or on localhost, use localhost backend
+  if(location.protocol === "file:" || location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+    return "http://localhost:5000/api";
+  }
+  // Production Render backend (HTTPS) - no port to prevent mixed content
+  return "https://shop-inventory-system-gcil.onrender.com/api";
+})();
 
 /* ---------------------------
-   State
+   Default Items & State
    --------------------------- */
 const defaultItems = [
   "2 Litre Water","1 Liter water","500 ML water","soda 750ml",
@@ -147,120 +262,90 @@ const defaultItems = [
   "mixer","cover big","cover medium","cover small"
 ];
 
-let mrpData = [];    // array of {name, opening, mrpPrice, barPrice, sales, transferred}
-let barData = [];    // array of {name, stock, price, sales}
-let dailySales = {}; // dailySales[iso] = [{name, qty, price, section}]
-let actionHistory = []; // ordered list of actions for undo: {type:'sale', name, qty, price, section, dateISO, timestamp}
+let mrpData = [], barData = [], dailySales = {}; // dailySales[ISO] = [{name, qty, price, section}]
 let currentModalDate = null;
 
 /* ---------------------------
-   Utilities
+   Helpers
    --------------------------- */
 function toISO(dateLike){
   if(!dateLike) return new Date().toISOString().split('T')[0];
-  if(typeof dateLike === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateLike)) return dateLike;
+  if(typeof dateLike === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateLike)) return dateLike;
   const d = new Date(dateLike);
   if(isNaN(d)) return new Date().toISOString().split('T')[0];
   return d.toISOString().split('T')[0];
 }
 function isoToDisplay(iso){
-  const d = new Date(iso + 'T00:00:00');
+  const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString();
 }
-function escapeHtml(s){ if(s===null||s===undefined) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function normalizeDailySales(raw){
+  const out = {};
+  Object.keys(raw || {}).forEach(k => { out[toISO(k)] = raw[k]; });
+  return out;
+}
+function escapeHtml(unsafe){
+  if(unsafe === null || unsafe === undefined) return "";
+  return String(unsafe).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
 
 /* ---------------------------
-   Persistence (localStorage) + backend integration
+   Local persistence
    --------------------------- */
-function saveLocal(){
-  localStorage.setItem('mrpData', JSON.stringify(mrpData));
-  localStorage.setItem('barData', JSON.stringify(barData));
-  localStorage.setItem('dailySales', JSON.stringify(dailySales));
-  localStorage.setItem('actionHistory', JSON.stringify(actionHistory));
+function saveData(){
+  try {
+    localStorage.setItem("mrpData", JSON.stringify(mrpData));
+    localStorage.setItem("barData", JSON.stringify(barData));
+    localStorage.setItem("dailySales", JSON.stringify(dailySales));
+  } catch(e){
+    console.error("saveData error:", e);
+  }
 }
-function loadLocal(){
-  try{
-    const m = localStorage.getItem('mrpData');
-    const b = localStorage.getItem('barData');
-    const s = localStorage.getItem('dailySales');
-    const a = localStorage.getItem('actionHistory');
-    if(m) mrpData = JSON.parse(m);
-    if(b) barData = JSON.parse(b);
-    if(s) dailySales = JSON.parse(s);
-    if(a) actionHistory = JSON.parse(a);
-  }catch(e){ console.warn('loadLocal parse error', e); }
+function loadLocalData(){
+  try {
+    const mrp = localStorage.getItem("mrpData");
+    const bar = localStorage.getItem("barData");
+    const sales = localStorage.getItem("dailySales");
+    if(mrp) mrpData = JSON.parse(mrp);
+    if(bar) barData = JSON.parse(bar);
+    if(sales){
+      try { dailySales = normalizeDailySales(JSON.parse(sales)); } catch(e){ dailySales = {}; }
+    }
+  } catch(e){
+    console.warn("loadLocalData failed:", e);
+    mrpData = []; barData = []; dailySales = {};
+  }
   if(!Array.isArray(mrpData) || mrpData.length === 0) initializeItems();
 }
 
-/* Fetch server summaries and merge without overwriting local detailed entries */
+/* ---------------------------
+   Backend fetch & merge
+   --------------------------- */
 async function fetchSalesFromBackend(){
-  try{
-    const res = await fetch(API_BASE + '/sales', {cache:'no-store'});
-    if(!res.ok) { console.warn('/sales returned', res.status); return; }
+  try {
+    const res = await fetch(API_BASE + "/sales", { cache: "no-store" });
+    if(!res.ok) {
+      console.warn("Backend /sales returned not ok:", res.status);
+      return;
+    }
     const serverData = await res.json();
-    // serverData like { 'YYYY-MM-DD': { product: {mrp:.., bar:..}, ... } }
+    // serverData is summary-form: {date: {product: {mrp, bar}, ...}, ...}
     Object.keys(serverData || {}).forEach(dateISO => {
       if(!dailySales[dateISO] || dailySales[dateISO].length === 0){
-        // convert summary into basic entries (price unknown -> 0)
+        // convert summary into entries with price=0 (we don't have price info from summary)
         const arr = [];
         const summary = serverData[dateISO] || {};
         Object.entries(summary).forEach(([product, vals]) => {
-          if(vals.mrp) arr.push({ name: product, qty: Number(vals.mrp || 0), price: 0, section: 'MRP' });
-          if(vals.bar) arr.push({ name: product, qty: Number(vals.bar || 0), price: 0, section: 'Bar' });
+          if(vals.mrp) arr.push({ name: product, qty: Number(vals.mrp || 0), price: 0, section: "MRP" });
+          if(vals.bar) arr.push({ name: product, qty: Number(vals.bar || 0), price: 0, section: "Bar" });
         });
         if(arr.length) dailySales[dateISO] = arr;
       }
     });
     renderDailySales();
-    saveLocal();
-  } catch(e){ console.warn('fetchSalesFromBackend error', e); }
-}
-
-/* send summary to backend (aggregated counts) */
-async function saveSummaryToBackend(dateISO){
-  try{
-    const entries = dailySales[dateISO] || [];
-    const summary = {};
-    entries.forEach(s=>{
-      if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0 };
-      const k = (s.section || '').toLowerCase();
-      if(k === 'mrp') summary[s.name].mrp += Number(s.qty || 0);
-      else summary[s.name].bar += Number(s.qty || 0);
-    });
-    const res = await fetch(API_BASE + '/sales', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ date: dateISO, sales: summary })
-    });
-    if(!res.ok){
-      const txt = await res.text().catch(()=>null);
-      console.warn('saveSummaryToBackend failed', res.status, txt);
-    } else {
-      const data = await res.json().catch(()=>null);
-      console.log('Saved summary to backend', data);
-    }
-  }catch(e){ console.error('saveSummaryToBackend error', e); }
-}
-
-/* send close-bill email for date */
-async function sendEmailFor(dateISO){
-  try{
-    const resp = await fetch(API_BASE + '/send-email', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ date: dateISO })
-    });
-    const text = await resp.text();
-    let data;
-    try{ data = text ? JSON.parse(text): null }catch(e){ data = { raw: text } }
-    if(!resp.ok){
-      console.error('send-email failed', resp.status, data);
-      alert('Server returned error sending email. See console.');
-      return { ok:false, data };
-    }
-    return { ok:true, data };
-  }catch(e){
-    console.error('sendEmailFor network error', e);
-    alert('Network error sending email. See console.');
-    return { ok:false, error: e };
+    saveData();
+  } catch(e){
+    console.warn("fetchSalesFromBackend error:", e);
   }
 }
 
@@ -268,461 +353,407 @@ async function sendEmailFor(dateISO){
    Initialization
    --------------------------- */
 function initializeItems(){
-  mrpData = defaultItems.map(name => ({ name, opening:0, mrpPrice:0, barPrice:0, transferred:0, sales:0 }));
+  mrpData = defaultItems.map(name => ({ name, opening:0, mrpPrice:0, barPrice:0, total:0, transferred:0, sales:0 }));
   barData = [];
-  dailySales = {};
-  actionHistory = [];
-  saveLocal();
+  saveData();
 }
 
 /* ---------------------------
-   UI Rendering - MRP & Bar
+   UI: MRP & Bar
    --------------------------- */
+function showSection(section){
+  document.querySelectorAll(".container").forEach(div=>div.classList.remove("active-section"));
+  const el = document.getElementById(section); if(el) el.classList.add("active-section");
+  document.querySelectorAll("nav a").forEach(a=>a.classList.remove("active"));
+  const map = { mrp:"nav-mrp", bar:"nav-bar", dashboard:"nav-dashboard" };
+  const nav = document.getElementById(map[section]); if(nav) nav.classList.add("active");
+}
+
 function renderMRP(){
-  const tbody = document.querySelector('#mrpTable tbody'); if(!tbody) return;
-  tbody.innerHTML = '';
-  mrpData.forEach((item, i) => {
+  const tbody = document.querySelector("#mrpTable tbody"); if(!tbody) return;
+  tbody.innerHTML = "";
+  mrpData.forEach((item,i)=>{
     item.total = Number(item.opening || 0);
     const closing = item.total - Number(item.sales || 0) - Number(item.transferred || 0);
-    const tr = document.createElement('tr');
+    const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(item.name)}</td>
-      <td><input type="number" min="0" value="${Number(item.opening||0)}" onchange="updateOpening(${i}, this.value)"></td>
-      <td><input type="number" min="0" value="${Number(item.mrpPrice||0)}" onchange="updateMRPPrice(${i}, this.value)"></td>
-      <td><input type="number" min="0" value="${Number(item.barPrice||0)}" onchange="updateBarPriceInMRP(${i}, this.value)"></td>
+      <td><input type="number" inputmode="numeric" min="0" value="${Number(item.opening||0)}" onchange="updateOpening(${i}, this.value)"></td>
+      <td><input type="number" inputmode="numeric" min="0" value="${Number(item.mrpPrice||0)}" onchange="updateMRPPrice(${i}, this.value)"></td>
+      <td><input type="number" inputmode="numeric" min="0" value="${Number(item.barPrice||0)}" onchange="updateBarPriceInMRP(${i}, this.value)"></td>
       <td>${Number(item.total||0)}</td>
       <td>${Number(closing)}</td>
       <td>${Number(item.sales||0)}</td>
       <td><div class="action-cell">
-        <button class="btn sell" onclick="sellFromMRP(${i})">Sell</button>
-        <button class="btn undo" onclick="undoLastForProduct('${escapeJs(item.name)}','MRP')">Undo</button>
-      </div></td>`;
+           <button class="btn transfer" onclick="transferToBar(${i})">⇄ Transfer</button>
+           <button class="btn sell" onclick="sellFromMRP(${i})">💲 Sell</button>
+         </div></td>
+    `;
     tbody.appendChild(tr);
   });
 }
 
-function updateOpening(index, val){ mrpData[index].opening = Math.max(0, parseInt(val||0)||0); saveLocal(); renderMRP(); }
-function updateMRPPrice(index, val){ mrpData[index].mrpPrice = Math.max(0, parseFloat(val||0)||0); saveLocal(); renderMRP(); }
-function updateBarPriceInMRP(index, val){ mrpData[index].barPrice = Math.max(0, parseFloat(val||0)||0); const name = mrpData[index].name; const b = barData.find(x=>x.name===name); if(b) b.price = mrpData[index].barPrice; saveLocal(); renderMRP(); renderBar(); }
+function updateOpening(index, val){ mrpData[index].opening = Math.max(0, parseInt(val||0)||0); saveData(); renderMRP(); }
+function updateMRPPrice(index, val){ mrpData[index].mrpPrice = Math.max(0, parseFloat(val||0)||0); saveData(); renderMRP(); }
+function updateBarPriceInMRP(index, val){
+  mrpData[index].barPrice = Math.max(0, parseFloat(val||0)||0);
+  const name = mrpData[index].name;
+  const b = barData.find(x=>x.name === name);
+  if(b) b.price = mrpData[index].barPrice;
+  saveData(); renderMRP(); renderBar();
+}
 
-function sellFromMRP(index){
-  let qtyStr = prompt('Enter quantity sold at MRP:');
+function transferToBar(index){
+  const qtyStr = prompt("Enter quantity to TRANSFER to Bar (numbers only). This will be added to Bar stock (inward):");
   if(qtyStr === null) return;
   const qty = parseInt(String(qtyStr).replace(/\D/g,'')) || 0;
-  if(qty <= 0) return alert('Invalid quantity.');
+  if(qty <= 0) return alert("Please enter a positive number.");
   const item = mrpData[index];
   const closing = Number(item.opening || 0) - Number(item.sales || 0) - Number(item.transferred || 0);
-  if(closing < qty) return alert('Not enough MRP stock.');
-  item.sales = (item.sales||0) + qty;
-  const price = Number(item.mrpPrice || 0);
-  const dateISO = toISO(new Date());
-  logDailySale(item.name, qty, price, 'MRP', dateISO);
-  saveLocal(); renderMRP(); renderBar();
+  if(closing < qty) return alert("Not enough stock in MRP to transfer!");
+  item.transferred = (item.transferred || 0) + qty;
+
+  const price = Number(item.barPrice || item.mrpPrice || 0);
+  const barItem = barData.find(b => b.name === item.name);
+  if(barItem) {
+    barItem.stock = (barItem.stock || 0) + qty;
+    if(!barItem.price && price) barItem.price = price;
+  } else {
+    barData.push({ name: item.name, stock: qty, price: price, sales: 0 });
+  }
+  saveData(); renderMRP(); renderBar();
+  alert(`Transferred ${qty} × ${item.name} to Bar (inward).`);
 }
 
-/* Bar section */
+function sellFromMRP(index){
+  const qtyStr = prompt("Enter quantity sold at MRP price (numbers only):");
+  if(qtyStr === null) return;
+  const qty = parseInt(String(qtyStr).replace(/\D/g,'')) || 0;
+  if(qty <= 0) return alert("Please enter a positive number.");
+  const item = mrpData[index];
+  const closing = Number(item.opening || 0) - Number(item.sales || 0) - Number(item.transferred || 0);
+  if(closing < qty) return alert("Not enough stock in MRP to sell!");
+  item.sales = (item.sales || 0) + qty;
+  const price = item.mrpPrice || 0;
+  logDailySale(item.name, qty, price, "MRP");
+  saveData(); renderMRP(); renderBar();
+  alert(`Sold ${qty} × ${item.name} at MRP ₹${price}`);
+}
+
 function renderBar(){
-  const tbody = document.querySelector('#barTable tbody'); if(!tbody) return;
-  tbody.innerHTML = '';
+  const tbody = document.querySelector("#barTable tbody"); if(!tbody) return;
+  tbody.innerHTML = "";
   barData.forEach((item,i)=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${escapeHtml(item.name)}</td>
-      <td><input type="number" min="0" value="${Number(item.stock||0)}" onchange="updateBarStock(${i}, this.value)"></td>
-      <td><input type="number" min="0" value="${Number(item.price||0)}" onchange="updateBarPrice(${i}, this.value)"></td>
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(item.name)}</td>
+      <td><input type="number" inputmode="numeric" min="0" value="${Number(item.stock||0)}" onchange="updateBarStock(${i}, this.value)"></td>
+      <td><input type="number" inputmode="numeric" min="0" value="${Number(item.price||0)}" onchange="updateBarPrice(${i}, this.value)"></td>
       <td>${Number(item.sales||0)}</td>
-      <td><div class="action-cell">
-           <button class="btn sell" onclick="sellFromBar(${i})">Sell</button>
-           <button class="btn undo" onclick="undoLastForProduct('${escapeJs(item.name)}','Bar')">Undo</button>
-         </div></td>`;
+      <td><div class="action-cell"><button class="btn sell" onclick="sellFromBar(${i})">💲 Sell</button></div></td>
+    `;
     tbody.appendChild(tr);
   });
 }
-function updateBarStock(i,val){ barData[i].stock = Math.max(0, parseInt(val||0)||0); saveLocal(); renderBar(); }
-function updateBarPrice(i,val){ barData[i].price = Math.max(0, parseFloat(val||0)||0); saveLocal(); renderBar(); }
+function updateBarStock(i, val){ barData[i].stock = Math.max(0, parseInt(val||0)||0); saveData(); renderBar(); }
+function updateBarPrice(i, val){ barData[i].price = Math.max(0, parseFloat(val||0)||0); saveData(); renderBar(); }
 
 function sellFromBar(i){
-  let qtyStr = prompt('Enter quantity sold at Bar:');
+  const qtyStr = prompt("Enter quantity sold at Bar price (numbers only):");
   if(qtyStr === null) return;
   const qty = parseInt(String(qtyStr).replace(/\D/g,'')) || 0;
-  if(qty <= 0) return alert('Invalid quantity.');
+  if(qty <= 0) return alert("Please enter a positive number.");
   const item = barData[i];
-  if(item.stock < qty) return alert('Not enough Bar stock.');
+  if(item.stock < qty) return alert("Not enough stock in Bar to sell!");
   item.stock -= qty;
-  item.sales = (item.sales||0) + qty;
+  item.sales = (item.sales || 0) + qty;
   const price = Number(item.price || 0);
-  const dateISO = toISO(new Date());
-  logDailySale(item.name, qty, price, 'Bar', dateISO);
-  saveLocal(); renderBar(); renderMRP();
+  logDailySale(item.name, qty, price, "Bar");
+  saveData(); renderBar();
+  alert(`Sold ${qty} × ${item.name} at Bar ₹${price}`);
 }
 
 /* ---------------------------
-   Sales logging, action history & undo
+   Sales logging & backend sync
    --------------------------- */
 function logDailySale(name, qty, price, section, dateISO = null){
   const iso = dateISO || toISO(new Date());
   if(!dailySales[iso]) dailySales[iso] = [];
   dailySales[iso].push({ name, qty: Number(qty||0), price: Number(price||0), section });
-  // push action for undo
-  actionHistory.push({ type:'sale', name, qty: Number(qty||0), price: Number(price||0), section, dateISO:iso, ts: Date.now() });
-  saveLocal();
-  renderDailySales();
-  saveSummaryToBackend(iso).catch(()=>{});
+  saveData(); renderDailySales();
+  saveSummaryToBackend(iso);
 }
 
-/* Undo last sale for given product & section */
-function undoLastForProduct(productName, section){
-  // find last action in actionHistory matching product+section
-  for(let i = actionHistory.length - 1; i >= 0; --i){
-    const a = actionHistory[i];
-    if(a.type === 'sale' && a.name === productName && a.section.toLowerCase() === section.toLowerCase()){
-      // revert it
-      // 1) remove one matching entry from dailySales[a.dateISO] (match by all fields)
-      const arr = dailySales[a.dateISO] || [];
-      // find the last entry index in daily sales with same details
-      for(let j = arr.length - 1; j >= 0; --j){
-        const e = arr[j];
-        if(e.name === a.name && Number(e.qty) === Number(a.qty) && Number(e.price) === Number(a.price) && e.section === a.section){
-          arr.splice(j,1);
-          // also revert stock/sales counts
-          if(a.section === 'MRP'){
-            const m = mrpData.find(x=>x.name === a.name);
-            if(m) m.sales = Math.max(0, Number(m.sales||0) - Number(a.qty||0));
-            // transferred unaffected
-          } else { // Bar
-            const b = barData.find(x=>x.name === a.name);
-            if(b){
-              b.stock = Number(b.stock||0) + Number(a.qty||0); // returned back
-              b.sales = Math.max(0, Number(b.sales||0) - Number(a.qty||0));
-            }
-          }
-          // remove action history item
-          actionHistory.splice(i,1);
-          saveLocal();
-          renderMRP(); renderBar(); renderDailySales();
-          saveSummaryToBackend(a.dateISO).catch(()=>{});
-          alert(`Undid last ${a.section} sale for ${a.name} (qty ${a.qty}).`);
-          return;
-        }
-      }
-      // if we didn't find matching dailySales entry, still remove actionHistory and attempt revert counts
-      // but prefer to alert user.
-      actionHistory.splice(i,1);
-      saveLocal(); renderMRP(); renderBar(); renderDailySales();
-      alert('Action history cleaned but exact matching sale entry not found. Stocks adjusted if possible.');
+function saveSummaryToBackend(dateISO){
+  const entries = dailySales[dateISO] || [];
+  const summary = {};
+  entries.forEach(s=>{
+    if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0 };
+    const k = (s.section || "").toLowerCase();
+    if(k === "mrp") summary[s.name].mrp += Number(s.qty || 0);
+    else summary[s.name].bar += Number(s.qty || 0);
+  });
+
+  fetch(API_BASE + "/sales", {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify({ date: dateISO, sales: summary })
+  })
+  .then(async r=>{
+    if(!r.ok) {
+      const txt = await r.text().catch(()=>null);
+      console.warn("saveSummaryToBackend failed:", r.status, txt);
       return;
     }
-  }
-  alert('No sale action to undo for this product & section.');
+    return r.json();
+  })
+  .then(d=>{ if(d) console.log("Saved summary to backend:", d); })
+  .catch(e=>console.error("Save summary error:", e));
 }
 
 /* ---------------------------
-   Dashboard & modal: render + interactions
+   Dashboard rendering + modal
    --------------------------- */
 function renderDailySales(){
-  const container = document.getElementById('dailySales'); if(!container) return;
-  container.innerHTML = '';
-  // dates sorted descending
+  const div = document.getElementById("dailySales"); if(!div) return;
+  div.innerHTML = "";
   const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
-  if(dates.length === 0){ container.innerHTML = '<p>No sales recorded yet.</p>'; return; }
-  const table = document.createElement('table');
-  table.innerHTML = `<thead><tr><th>Date</th><th>Total Revenue (₹)</th><th>MRP Items</th><th>Bar Items</th><th>Actions</th></tr></thead><tbody></tbody>`;
-  const tbody = table.querySelector('tbody');
+  if(dates.length === 0){
+    div.innerHTML = "<p>No sales recorded yet.</p>";
+    return;
+  }
+  const wrap = document.createElement("div"); wrap.style.overflowX="auto"; wrap.style.marginTop="6px";
+  const table = document.createElement("table"); table.style.minWidth="760px";
+  table.innerHTML = `<thead><tr><th>Date</th><th>MRP Items</th><th>Bar Items</th><th>Revenue (₹)</th><th>Actions</th></tr></thead><tbody></tbody>`;
+  const tbody = table.querySelector("tbody");
   dates.forEach(dateISO=>{
     const entries = dailySales[dateISO] || [];
-    const summary = {}; let totalRevenue = 0;
+    const summary = {}; let totalAmount = 0;
     entries.forEach(s=>{
       if(!summary[s.name]) summary[s.name] = { mrp:0, bar:0, price: s.price || 0 };
-      if(s.section === 'MRP') summary[s.name].mrp += Number(s.qty||0);
-      else summary[s.name].bar += Number(s.qty||0);
-      summary[s.name].price = summary[s.name].price || Number(s.price||0);
+      if(s.section === "MRP") summary[s.name].mrp += Number(s.qty || 0);
+      else summary[s.name].bar += Number(s.qty || 0);
+      summary[s.name].price = summary[s.name].price || Number(s.price || 0);
     });
     Object.keys(summary).forEach(p=>{
-      const price = Number(summary[p].price||0);
-      totalRevenue += (summary[p].mrp + summary[p].bar) * price;
+      const price = Number(summary[p].price || 0);
+      totalAmount += (summary[p].mrp + summary[p].bar) * price;
     });
-    const mrpCount = Object.values(summary).reduce((a,c)=>a + (c.mrp||0),0);
-    const barCount = Object.values(summary).reduce((a,c)=>a + (c.bar||0),0);
-    const tr = document.createElement('tr');
+    const tr = document.createElement("tr");
     tr.innerHTML = `<td>${isoToDisplay(dateISO)}</td>
-      <td>₹${Number(totalRevenue||0).toFixed(2)}</td>
-      <td>${mrpCount}</td>
-      <td>${barCount}</td>
+      <td>${Object.values(summary).reduce((a,c)=>a + (c.mrp||0),0)}</td>
+      <td>${Object.values(summary).reduce((a,c)=>a + (c.bar||0),0)}</td>
+      <td>₹${Number(totalAmount||0).toFixed(2)}</td>
       <td>
-        <div class="action-cell">
-          <button class="btn view" data-date="${dateISO}">View</button>
-          <button class="btn edit" data-date="${dateISO}">Edit</button>
-          <button class="btn secondary" data-date="${dateISO}">Delete</button>
-          <button class="btn danger" data-date="${dateISO}">Close Bill</button>
-        </div>
+        <button class="btn view" data-date="${dateISO}">View</button>
+        <button class="btn edit" data-date="${dateISO}" style="margin-left:6px">Edit</button>
+        <button class="btn danger" data-date="${dateISO}" style="margin-left:6px">Close Bill</button>
       </td>`;
     tbody.appendChild(tr);
   });
-  container.appendChild(table);
+  wrap.appendChild(table); div.appendChild(wrap);
 
-  // attach event handlers
-  container.querySelectorAll('button.view').forEach(b => b.addEventListener('click', e => openModal(b.dataset.date, false)));
-  container.querySelectorAll('button.edit').forEach(b => b.addEventListener('click', e => openModal(b.dataset.date, true)));
-  container.querySelectorAll('button.secondary').forEach(b => b.addEventListener('click', e => {
-    const d = b.dataset.date;
-    if(confirm('Delete entire day ' + isoToDisplay(d) + ' ? This cannot be undone.')) {
-      deleteDay(d);
-    }
-  }));
-  container.querySelectorAll('button.danger').forEach(b => b.addEventListener('click', async e => {
-    const d = b.dataset.date;
-    if(!confirm('Send email for ' + isoToDisplay(d) + ' ?')) return;
-    const r = await sendEmailFor(d);
-    if(r.ok) { alert('Email sent.'); localStorage.setItem(`billClosed_${d}`,'true'); }
+  // delegated handlers
+  div.querySelectorAll("button.view").forEach(b=> b.addEventListener("click", e => openModal(b.dataset.date, { readonly:true })));
+  div.querySelectorAll("button.edit").forEach(b=> b.addEventListener("click", e => openModal(b.dataset.date, { readonly:false })));
+  div.querySelectorAll("button.danger").forEach(b=> b.addEventListener("click", e => {
+    const dateISO = b.dataset.date;
+    if(confirm("Send email for " + isoToDisplay(dateISO) + " ?")) closeBillFor(dateISO);
   }));
 }
 
-/* Modal: openModal(dateISO, editable) - if editable true allow edits and Save */
-function openModal(dateISO, editable=false){
+/* Modal */
+
+function openModal(dateISO, opts = { readonly:false }){
   currentModalDate = dateISO;
-  const modal = document.getElementById('salesModal'); modal.style.display = 'flex';
-  document.getElementById('modalDate').textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
-  const tbody = document.querySelector('#modalTable tbody'); tbody.innerHTML = '';
-  const entries = (dailySales[dateISO] || []).map((e, idx) => ({...e, _idx: idx}));
-  // group by item+section but keep separate rows for each entry to allow edits & deletion
-  entries.forEach(entry=>{
-    const tr = document.createElement('tr');
-    tr.dataset.entryIndex = entry._idx;
-    tr.innerHTML = `<td><input type="text" class="modal-prod" value="${escapeHtml(entry.name)}"></td>
-      <td>${escapeHtml(entry.section)}</td>
-      <td><input type="number" class="modal-qty" min="1" value="${Number(entry.qty||0)}"></td>
-      <td><input type="number" class="modal-price" min="0" value="${Number(entry.price||0)}"></td>
-      <td class="modal-total">₹${(Number(entry.qty||0) * Number(entry.price||0)).toFixed(2)}</td>
-      <td>
-        <button class="small btn secondary modal-remove">Remove</button>
-        <button class="small btn undo modal-undo-entry">Undo Entry</button>
-      </td>`;
+  const modal = document.getElementById("salesModal"); if(!modal) return;
+  modal.style.display = "flex";
+  document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
+  const tbody = document.querySelector("#modalTable tbody"); tbody.innerHTML = "";
+
+  const entries = dailySales[dateISO] || [];
+  entries.forEach((s, idx) => {
+    const tr = document.createElement("tr");
+    tr.dataset.idx = idx;
+    tr.innerHTML = `
+      <td>${escapeHtml(s.name)}</td>
+      <td>${escapeHtml(s.section)}</td>
+      <td><input type="number" min="0" value="${Number(s.qty||0)}" ${opts.readonly ? 'disabled' : ''} class="modal-qty"></td>
+      <td><input type="number" min="0" value="${Number(s.price||0)}" ${opts.readonly ? 'disabled' : ''} class="modal-price"></td>
+      <td class="modal-amount">₹${((Number(s.qty||0)) * (Number(s.price||0))).toFixed(2)}</td>
+      <td>${opts.readonly ? '' : '<button class="btn danger modal-remove">Remove</button>'}</td>
+    `;
     tbody.appendChild(tr);
   });
 
-  // product select options
-  const select = document.getElementById('addProductSelect');
-  select.innerHTML = '';
-  const names = Array.from(new Set(defaultItems.concat(Object.keys((function(){ const s={}; (dailySales[dateISO]||[]).forEach(e=>s[e.name]=1); return s; })()))));
-  names.forEach(n=> {
-    const opt = document.createElement('option'); opt.value = n; opt.textContent = n; select.appendChild(opt);
-  });
+  // product select
+  const select = document.getElementById("addProductSelect"); select.innerHTML = "";
+  const names = Array.from(new Set(defaultItems.concat(entries.map(e=>e.name))));
+  names.forEach(n => { const opt = document.createElement("option"); opt.value = n; opt.textContent = n; select.appendChild(opt); });
 
+  // set add defaults
   setModalPriceDefaults();
 
-  // enable/disable delete/save buttons
-  document.getElementById('modalSaveBtn').disabled = !editable;
-  document.getElementById('modalDeleteDayBtn').disabled = !editable;
+  // setup buttons based on readonly
+  const addBtn = document.getElementById("modalAddBtn");
+  const saveBtn = document.getElementById("modalSaveBtn");
+  const closeBillBtn = document.getElementById("modalCloseBillBtn");
+  addBtn.disabled = !!opts.readonly;
+  saveBtn.disabled = !!opts.readonly;
+  // show closed state if already closed
+  if(localStorage.getItem(`billClosed_${dateISO}`) === "true"){
+    closeBillBtn.disabled = true; closeBillBtn.textContent = "Closed";
+  } else {
+    closeBillBtn.disabled = false; closeBillBtn.textContent = "📨 Close Bill";
+  }
 
-  // wire modal internal events
-  tbody.querySelectorAll('.modal-qty, .modal-price, .modal-prod').forEach(inp => {
-    inp.addEventListener('input', ()=> {
-      // recalc total for row
-      const row = inp.closest('tr');
-      const q = Number(row.querySelector('.modal-qty').value || 0);
-      const p = Number(row.querySelector('.modal-price').value || 0);
-      row.querySelector('.modal-total').textContent = '₹' + (q*p).toFixed(2);
+  // live update amounts
+  tbody.querySelectorAll("input.modal-qty, input.modal-price").forEach(inp=>{
+    inp.addEventListener("input", e=>{
+      const row = e.target.closest("tr");
+      const qty = Number(row.querySelector("input.modal-qty").value || 0);
+      const price = Number(row.querySelector("input.modal-price").value || 0);
+      row.querySelector(".modal-amount").textContent = "₹" + (qty * price).toFixed(2);
     });
   });
-  tbody.querySelectorAll('.modal-remove').forEach(btn=> btn.addEventListener('click', e=>{
-    const row = btn.closest('tr'); const idx = Number(row.dataset.entryIndex);
-    if(!confirm('Remove this sold entry?')) return;
-    // remove entry from dailySales
-    const arr = dailySales[dateISO] || [];
-    if(idx >=0 && idx < arr.length){
-      // record removal in actionHistory? We'll push an action of type 'remove' for trace (not used in undo)
-      arr.splice(idx,1);
-      // update and re-open modal
-      saveLocal(); renderDailySales(); openModal(dateISO, editable);
-    } else alert('Index mismatch.');
-  }));
-  tbody.querySelectorAll('.modal-undo-entry').forEach(btn=> btn.addEventListener('click', e=>{
-    const row = btn.closest('tr'); const idx = Number(row.dataset.entryIndex);
-    const arr = dailySales[dateISO] || [];
-    if(idx>=0 && idx < arr.length){
-      const entry = arr[idx];
-      // revert effect on stocks/sales counts
-      if(entry.section === 'MRP'){
-        const m = mrpData.find(x=>x.name === entry.name);
-        if(m) m.sales = Math.max(0, Number(m.sales||0) - Number(entry.qty||0));
-      } else {
-        const b = barData.find(x=>x.name === entry.name);
-        if(b){ b.stock = Number(b.stock||0) + Number(entry.qty||0); b.sales = Math.max(0, Number(b.sales||0) - Number(entry.qty||0)); }
-      }
-      // remove entry and also remove matching actionHistory item if present
-      // find latest matching history
-      for(let h=actionHistory.length-1; h>=0; --h){
-        const a = actionHistory[h];
-        if(a.type==='sale' && a.name===entry.name && a.section===entry.section && a.qty===entry.qty && a.price===entry.price && a.dateISO===dateISO){
-          actionHistory.splice(h,1);
-          break;
-        }
-      }
-      arr.splice(idx,1);
-      saveLocal(); renderMRP(); renderBar(); renderDailySales(); openModal(dateISO, editable);
-      alert('Entry undone and removed.');
-    } else alert('Entry not found.');
-  }));
 
-  // modal button states
-  document.getElementById('modalCloseBtn').onclick = closeModal;
-  document.getElementById('modalAddBtn').onclick = () => {
-    const name = document.getElementById('addProductSelect').value;
-    const qty = Number(document.getElementById('addQty').value||0);
-    const price = Number(document.getElementById('addPrice').value||0);
-    const section = document.getElementById('addSection').value || 'MRP';
-    if(!name || qty<=0) return alert('Invalid add values.');
-    if(!dailySales[dateISO]) dailySales[dateISO] = [];
-    dailySales[dateISO].push({ name, qty, price, section });
-    // apply stock/sales changes too
-    if(section === 'MRP'){
-      const m = mrpData.find(x=>x.name===name);
-      if(m) m.sales = (m.sales||0) + qty;
-    } else {
-      let b = barData.find(x=>x.name===name);
-      if(!b){ b = { name, stock:0, price: price, sales:0 }; barData.push(b); }
-      b.sales = (b.sales||0) + qty;
-      b.stock = Math.max(0, Number(b.stock||0) - qty); // assume sale reduces stock
-    }
-    // record in action history
-    actionHistory.push({ type:'sale', name, qty, price, section, dateISO, ts: Date.now() });
-    saveLocal(); renderMRP(); renderBar(); renderDailySales(); openModal(dateISO, editable);
-  };
-
-  document.getElementById('modalSaveBtn').onclick = () => {
-    // save edits from modal table back into dailySales[dateISO]
-    const rows = document.querySelectorAll('#modalTable tbody tr');
-    const newArr = [];
-    rows.forEach(row => {
-      const name = row.querySelector('.modal-prod').value.trim();
-      const qty = Number(row.querySelector('.modal-qty').value || 0);
-      const price = Number(row.querySelector('.modal-price').value || 0);
-      const section = row.children[1].textContent.trim();
-      if(name && qty > 0) newArr.push({ name, qty, price, section });
+  // remove handlers
+  tbody.querySelectorAll("button.modal-remove").forEach(btn=>{
+    btn.addEventListener("click", e=>{
+      const row = e.target.closest("tr");
+      const idx = Number(row.dataset.idx);
+      if(!confirm("Delete this sold item?")) return;
+      dailySales[dateISO].splice(idx,1);
+      saveData();
+      openModal(dateISO, opts); // re-open to refresh
+      renderDailySales();
     });
-    dailySales[dateISO] = newArr;
-    // NOTE: we do NOT attempt to perfectly reconcile actionHistory here; Save is authoritative for that date
-    // so we will append simple actions for entries (to enable subsequent undo)
-    // Clear out previous actions for this date in history
-    actionHistory = actionHistory.filter(a=> a.dateISO !== dateISO || a.type !== 'sale');
-    // re-generate actions for new entries
-    newArr.forEach(e => actionHistory.push({ type:'sale', name:e.name, qty:e.qty, price:e.price, section:e.section, dateISO, ts:Date.now() }));
-    saveLocal(); renderDailySales(); closeModal(); alert('Saved changes.');
-    saveSummaryToBackend(dateISO).catch(()=>{});
-  };
-
-  document.getElementById('modalDeleteDayBtn').onclick = () => {
-    if(!confirm('Delete entire day ' + isoToDisplay(dateISO) + ' ?')) return;
-    deleteDay(dateISO);
-    closeModal();
-  };
-
-  document.getElementById('modalCloseBillBtn').onclick = async ()=>{
-    if(!confirm('Send email for ' + isoToDisplay(dateISO) + ' ?')) return;
-    const r = await sendEmailFor(dateISO);
-    if(r.ok){
-      alert('Email sent for ' + isoToDisplay(dateISO));
-      localStorage.setItem(`billClosed_${dateISO}`,'true');
-    }
-  };
+  });
 }
 
-/* Delete entire day */
-function deleteDay(dateISO){
-  delete dailySales[dateISO];
-  // remove related actionHistory entries
-  actionHistory = actionHistory.filter(a=> a.dateISO !== dateISO);
-  saveLocal(); renderDailySales();
-  // notify backend of deletion (optional) - not implemented server-side but we can send empty sales
-  fetch(API_BASE + '/sales', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ date: dateISO, sales: {} }) })
-    .then(()=>console.log('Notified backend of deletion (empty summary)')).catch(()=>{});
-  alert('Deleted sales for ' + isoToDisplay(dateISO));
+function closeModal(){
+  const modal = document.getElementById("salesModal"); if(modal) modal.style.display = "none";
+  currentModalDate = null;
 }
 
-/* helper to set defaults in modal add fields */
 function setModalPriceDefaults(){
-  const product = document.getElementById('addProductSelect')?.value || '';
-  const section = document.getElementById('addSection')?.value || 'MRP';
-  const priceField = document.getElementById('addPrice');
-  const mrp = findProductMRP(product);
-  const barp = findProductBarPrice(product);
-  priceField.value = (section === 'MRP') ? String(mrp) : String(barp);
+  const productEl = document.getElementById("addProductSelect");
+  const sectionEl = document.getElementById("addSection");
+  const priceField = document.getElementById("addPrice");
+  if(!productEl || !sectionEl || !priceField) return;
+  const product = productEl.value || "";
+  const section = sectionEl.value || "MRP";
+  // find price from mrpData/barData
+  const m = mrpData.find(x=>x.name===product);
+  if(section === "MRP"){
+    priceField.value = m ? Number(m.mrpPrice || 0) : 0;
+  } else {
+    const b = barData.find(x=>x.name===product);
+    priceField.value = b ? Number(b.price || 0) : (m ? Number(m.barPrice||0) : 0);
+  }
 }
 
-/* find price helpers */
-function findProductMRP(name){ const m = mrpData.find(x=>x.name===name); return m ? Number(m.mrpPrice||0) : 0; }
-function findProductBarPrice(name){ const m = mrpData.find(x=>x.name===name); if(m && Number(m.barPrice)) return Number(m.barPrice); const b = barData.find(x=>x.name===name); return b ? Number(b.price||0) : 0; }
+document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+document.getElementById("addProductSelect").addEventListener("change", setModalPriceDefaults);
+document.getElementById("addSection").addEventListener("change", setModalPriceDefaults);
 
-function closeModal(){ document.getElementById('salesModal').style.display = 'none'; currentModalDate = null; }
-
-/* ---------------------------
-   Wire up nav and load
-   --------------------------- */
-function showSection(section,e){
-  document.querySelectorAll('.container').forEach(c=>c.classList.remove('active-section'));
-  const el = document.getElementById(section); if(el) el.classList.add('active-section');
-  document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
-  if(e && e.currentTarget) e.currentTarget.classList.add('active');
-}
-
-function escapeJs(s){
-  if(s===null||s===undefined) return '';
-  return String(s).replace(/'/g,"\\'").replace(/"/g,'\\"');
-}
-
-/* ---------------------------
-   On load
-   --------------------------- */
-document.addEventListener('DOMContentLoaded', async ()=>{
-  // load local state and try to merge server summaries
-  loadLocal();
-  await fetchSalesFromBackend();
-  // render everything
-  renderMRP(); renderBar(); renderDailySales();
-
-  // wire modal basic events not already wired
-  document.getElementById('addSection').addEventListener('change', setModalPriceDefaults);
-  document.getElementById('addProductSelect').addEventListener('change', setModalPriceDefaults);
+/* modal add */
+document.getElementById("modalAddBtn").addEventListener("click", ()=>{
+  if(!currentModalDate) return alert("Open a date first.");
+  const name = document.getElementById("addProductSelect").value;
+  const qty = parseInt(document.getElementById("addQty").value) || 0;
+  let price = parseFloat(document.getElementById("addPrice").value) || 0;
+  const section = document.getElementById("addSection").value || "MRP";
+  if(!name || qty <= 0) return alert("Please enter product and numeric positive quantity.");
+  if(!price){
+    price = section === "MRP" ? (mrpData.find(x=>x.name===name)?.mrpPrice||0) : (barData.find(x=>x.name===name)?.price||0);
+  }
+  if(!dailySales[currentModalDate]) dailySales[currentModalDate] = [];
+  dailySales[currentModalDate].push({ name, qty, price, section });
+  saveData(); saveSummaryToBackend(currentModalDate);
+  openModal(currentModalDate, { readonly:false }); renderDailySales();
+  alert("Added sold item to " + isoToDisplay(currentModalDate));
 });
 
-/* Expose some functions for potential inline use */
-window.showSection = showSection;
-window.transferToBar = function(i){
-  // optional: implement transfer UI if you want (not necessary for this task)
-  const qtyStr = prompt('Enter qty to transfer from MRP to Bar:');
-  if(qtyStr === null) return;
-  const qty = parseInt(qtyStr.replace(/\D/g,''))||0;
-  if(qty<=0) return alert('Invalid qty');
-  const item = mrpData[i];
-  const closing = Number(item.opening||0) - Number(item.sales||0) - Number(item.transferred||0);
-  if(closing < qty) return alert('Not enough stock');
-  item.transferred = (item.transferred||0) + qty;
-  // add to bar
-  let b = barData.find(x=>x.name === item.name);
-  const price = Number(item.barPrice || item.mrpPrice || 0);
-  if(b){ b.stock = (b.stock||0) + qty; if(!b.price && price) b.price = price; } else barData.push({ name: item.name, stock: qty, price, sales:0 });
-  saveLocal(); renderMRP(); renderBar(); alert('Transferred to bar.');
-};
-window.sellFromMRP = sellFromMRP;
-window.sellFromBar = sellFromBar;
-window.openModal = openModal;
-window.closeModal = closeModal;
-window.addSoldItem = function(){ // quick helper to add today's simple sale from global inputs (if you use them)
-  const name = document.getElementById('addProductSelect').value;
-  const qty = Number(document.getElementById('addQty').value||0);
-  const price = Number(document.getElementById('addPrice').value||0);
-  const section = document.getElementById('addSection').value || 'MRP';
-  const dateISO = toISO(new Date());
-  if(!dailySales[dateISO]) dailySales[dateISO]=[];
-  dailySales[dateISO].push({ name, qty, price, section });
-  // apply counts similarly
-  if(section==='MRP'){ const m = mrpData.find(x=>x.name===name); if(m) m.sales = (m.sales||0)+qty; }
-  else { let b = barData.find(x=>x.name===name); if(!b) { b={name,stock:0,price, sales:0}; barData.push(b);} b.sales=(b.sales||0)+qty; b.stock = Math.max(0, Number(b.stock||0) - qty); }
-  actionHistory.push({ type:'sale', name, qty, price, section, dateISO, ts: Date.now() });
-  saveLocal(); renderMRP(); renderBar(); renderDailySales(); saveSummaryToBackend(dateISO).catch(()=>{});
-};
-window.undoLastForProduct = undoLastForProduct;
+/* modal save */
+document.getElementById("modalSaveBtn").addEventListener("click", ()=>{
+  if(!currentModalDate) return;
+  const tbody = document.querySelector("#modalTable tbody");
+  const rows = Array.from(tbody.querySelectorAll("tr"));
+  const newEntries = rows.map(row=>{
+    const name = row.children[0].textContent;
+    const section = row.children[1].textContent;
+    const qty = Number(row.querySelector("input.modal-qty").value || 0);
+    const price = Number(row.querySelector("input.modal-price").value || 0);
+    return { name, qty, price, section };
+  });
+  dailySales[currentModalDate] = newEntries;
+  saveData(); saveSummaryToBackend(currentModalDate);
+  alert("Saved changes for " + isoToDisplay(currentModalDate));
+  renderDailySales();
+  openModal(currentModalDate, { readonly:false });
+});
 
-/* End of script */
+/* ---------------------------
+   Close bill (send email)
+   --------------------------- */
+async function closeBillFor(dateISO){
+  try {
+    console.log("Requesting send-email for:", dateISO, "API_BASE=", API_BASE);
+    const resp = await fetch(API_BASE + "/send-email", {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ date: dateISO })
+    });
+
+    const text = await resp.text();
+    let data;
+    try { data = text ? JSON.parse(text) : null; } catch(e){ data = { raw: text }; }
+
+    if(!resp.ok){
+      console.error("send-email failed", resp.status, resp.statusText, data);
+      alert("Server returned error:\nStatus: " + resp.status + "\nBody: " + (data && data.message ? data.message : JSON.stringify(data)));
+      return;
+    }
+
+    console.log("send-email success", data);
+    alert((data && data.message) ? data.message : ("Email sent for " + isoToDisplay(dateISO)));
+    localStorage.setItem(`billClosed_${dateISO}`, 'true');
+    renderDailySales();
+    if(currentModalDate === dateISO){
+      const btn = document.getElementById("modalCloseBillBtn"); if(btn){ btn.disabled = true; btn.textContent = "Closed"; }
+    }
+  } catch (err) {
+    console.error("closeBillFor error (network/exception):", err);
+    alert("Failed to send email (network or exception). See console for details.\nError: " + (err && err.message ? err.message : String(err)));
+  }
+}
+document.getElementById("modalCloseBillBtn").addEventListener("click", ()=> { if(currentModalDate) closeBillFor(currentModalDate); });
+
+/* ---------------------------
+   Init & bindings
+   --------------------------- */
+document.addEventListener("DOMContentLoaded", async ()=> {
+  // load local
+  loadLocalData();
+
+  // try to merge server summaries (non-destructive)
+  await fetchSalesFromBackend();
+
+  // render UI
+  renderMRP(); renderBar(); renderDailySales();
+
+  // expose some functions globally (for inline calls)
+  window.showSection = showSection;
+  window.transferToBar = transferToBar;
+  window.sellFromMRP = sellFromMRP;
+  window.sellFromBar = sellFromBar;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.addSoldItem = ()=>{}; // not used
+  window.saveModalEdits = ()=>{}; // not used
+  window.closeBillFor = closeBillFor;
+});
 </script>
 </body>
 </html>
