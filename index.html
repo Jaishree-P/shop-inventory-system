@@ -1,238 +1,462 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Shop Inventory System</title>
-
   <style>
-    :root{
-      --blue:#2f78b4;
-      --blue-darker:#246294;
-      --muted:#f1f6fb;
-      --card:#ffffff;
-      --radius:10px;
-      --text-size:15px;
-      --btn-height:34px;
+    body { font-family: "Poppins", sans-serif; margin: 0; background-color: #f4f8fc; color: #333; }
+    nav { background-color: #337ab7; color: white; padding: 12px 20px; display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; }
+    nav a { color: white; text-decoration: none; font-weight: 500; margin: 8px; padding: 8px 16px; border-radius: 6px; transition: background 0.3s; cursor:pointer; }
+    nav a:hover, nav a.active { background-color: #286090; }
+    .container { display: none; padding: 20px; }
+    .active-section { display: block; }
+    h2 { color: #286090; text-align: center; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; }
+    th, td { padding: 10px; text-align: center; border-bottom: 1px solid #ddd; }
+    th { background-color: #e7f0fa; }
+    input, button, select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; outline: none; }
+    button { background-color: #337ab7; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #286090; }
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr { display: block; }
+      th { display: none; }
+      td { padding: 8px; border: none; position: relative; }
+      td::before { content: attr(data-label); position: absolute; left: 10px; font-weight: bold; }
     }
-
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:"Poppins",sans-serif;
-      background:#f4f8fc;
-    }
-
-    nav {
-      background:var(--blue);
-      color:#fff;
-      padding:10px;
-      display:flex;
-      gap:12px;
-      overflow-x:auto;
-      position:sticky;
-      top:0;
-      z-index:20;
-    }
-    nav a{
-      color:#fff;
-      padding:8px 12px;
-      border-radius:8px;
-      text-decoration:none;
-      font-weight:600;
-    }
-    nav a.active{
-      background:var(--blue-darker);
-    }
-
-    .container{
-      display:none;
-      padding:14px;
-      max-width:1100px;
-      margin:auto;
-    }
-    .active-section{
-      display:block;
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      background:#fff;
-      border-radius:10px;
-      overflow:hidden;
-      min-width:760px;
-    }
-    th,td{
-      padding:10px;
-      border-bottom:1px solid #e6e6e6;
-      text-align:center;
-    }
-    th{
-      background:#f1f6fb;
-    }
-
-    input,select{
-      padding:8px;
-      width:100%;
-      border:1px solid #ccc;
-      border-radius:8px;
-    }
-
-    .btn{
-      padding:8px 12px;
-      border:none;
-      border-radius:8px;
-      color:white;
-      cursor:pointer;
-      min-width:100px;
-      font-weight:600;
-    }
-    .btn.sell{background:#2fa85a;}
-    .btn.transfer{background:#2f78b4;}
-    .btn.danger{background:#d9534f;}
-    .btn.view{background:#1976d2;}
-    .btn.edit{background:#ff9800;}
-
-    .modal{
-      display:none;
-      position:fixed;
-      top:0;left:0;
-      width:100%;height:100%;
-      background:rgba(0,0,0,0.4);
-      align-items:center;
-      justify-content:center;
-      padding:10px;
-      z-index:200;
-    }
-    .modal-content{
-      background:#fff;
-      max-width:900px;
-      width:100%;
-      max-height:90vh;
-      overflow:auto;
-      padding:14px;
-      border-radius:12px;
-    }
-    .modal-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
-
+    .daily-sales { background: white; border-radius: 10px; padding: 10px; }
+    .date-row { cursor: pointer; color: #337ab7; font-weight: 500; margin: 6px 0; }
+    .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
+    .modal-content { background: white; border-radius: 10px; padding: 20px; width: 90%; max-width: 600px; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .close-btn { background: none; border: none; font-size: 20px; color: #333; cursor: pointer; }
+    .modal-table th { background-color: #e7f0fa; }
+    .modal-table td, .modal-table th { padding: 8px; border: 1px solid #ddd; }
+    .total-row { font-weight: bold; background-color: #f1f6fb; }
+    .close-bill-btn { display: block; margin: 20px auto; background-color: #d9534f; color: white; font-weight: 500; padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; }
+    .close-bill-btn:hover { background-color: #c9302c; }
   </style>
 </head>
-
 <body>
 
-<!-- NAVIGATION -->
-<nav>
-  <a href="#" id="nav-mrp" class="active">MRP</a>
-  <a href="#" id="nav-bar">Bar</a>
-  <a href="#" id="nav-dashboard">Dashboard</a>
-</nav>
+  <nav>
+    <a id="link-mrp" class="active" onclick="showSection('mrp', event)">MRP Section</a>
+    <a id="link-bar" onclick="showSection('bar', event)">Bar Section</a>
+    <a id="link-dashboard" onclick="showSection('dashboard', event)">Dashboard</a>
+  </nav>
 
-<!-- MRP SECTION -->
-<div id="mrp" class="container active-section">
-  <h2>MRP Section</h2>
-  <div style="overflow-x:auto">
+  <div id="mrp" class="container active-section">
+    <h2>MRP Section</h2>
     <table id="mrpTable">
       <thead>
         <tr>
-          <th>Item</th>
-          <th>Opening</th>
-          <th>MRP Price</th>
-          <th>Bar Price</th>
+          <th>Items</th>
+          <th>Opening Balance</th>
+          <th>Amt per Quantity</th>
           <th>Total</th>
-          <th>Closing</th>
-          <th>Sold</th>
+          <th>Closing Balance</th>
+          <th>Sales</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
-</div>
 
-<!-- BAR SECTION -->
-<div id="bar" class="container">
-  <h2>Bar Section</h2>
-  <div style="overflow-x:auto">
+  <div id="bar" class="container">
+    <h2>Bar Section</h2>
     <table id="barTable">
       <thead>
         <tr>
-          <th>Item</th>
+          <th>Items</th>
           <th>Stock</th>
-          <th>Bar Price</th>
-          <th>Sold</th>
-          <th>Action</th>
+          <th>Amt per Quantity</th>
+          <th>Sales</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
   </div>
-</div>
 
-<!-- DASHBOARD -->
-<div id="dashboard" class="container">
-  <h2>Daily Sales Report</h2>
-  <div id="dailySales"></div>
-</div>
+  <div id="dashboard" class="container">
+    <h2>Daily Sales Report</h2>
+    <div class="daily-sales" id="dailySales"></div>
+    <button class="close-bill-btn" onclick="closeBillToday()">📨 Close Bill (Send Email)</button>
+  </div>
 
-<!-- MODAL -->
-<div id="salesModal" class="modal">
-  <div class="modal-content">
-
-    <div class="modal-header">
-      <h3 id="modalDate"></h3>
-      <button onclick="closeModal()" style="font-size:20px;border:none;background:none;">×</button>
-    </div>
-
-    <div style="overflow-x:auto">
-      <table id="modalTable">
+  <div id="salesModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalDate">Sales Report</h3>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <table class="modal-table" id="modalTable">
         <thead>
-          <tr><th>Product</th><th>MRP Qty</th><th>Bar Qty</th><th>Total</th></tr>
+          <tr>
+            <th>Product</th>
+            <th>MRP Qty</th>
+            <th>Bar Qty</th>
+            <th>Total Sales (₹)</th>
+          </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
-
-    <br>
-    <label>Add Sold Item:</label>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <select id="addProductSelect"></select>
-      <input id="addQty" type="number" min="1" value="1" placeholder="Qty">
-      <input id="addPrice" type="number" min="0" value="0" placeholder="Price">
-      <select id="addSection"><option>MRP</option><option>Bar</option></select>
-      <button class="btn" onclick="addSoldItem()">Add</button>
-    </div>
-
-    <br>
-    <button class="btn danger" id="modalCloseBillBtn" onclick="closeBillForDate()">📨 Close Bill</button>
   </div>
-</div>
 
 <script>
-/*-----------------------------------------------------*
- *  ✔ FINAL, CORRECT API BASE FOR RENDER BACKEND
- *-----------------------------------------------------*/
+/* ------------------------
+   CONFIG
+   ------------------------ */
+/* Change this to your Render backend URL if different */
 const API_BASE = "https://shop-inventory-system-gcil.onrender.com/api";
 
-/*
-⚠ IMPORTANT:
-Paste your ENTIRE JavaScript logic BELOW this comment.
-Do NOT change the API paths inside your logic — because
-they will now automatically point to:
+/* ------------------------
+   Utilities (date helpers)
+   ------------------------ */
+function toISO(date = new Date()) {
+  const d = (date instanceof Date) ? date : new Date(date);
+  if (isNaN(d)) return new Date().toISOString().split('T')[0];
+  return d.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+function isoToDisplay(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString();
+}
 
-    https://shop-inventory-system-gcil.onrender.com/api/...
+/* ------------------------
+   App state
+   ------------------------ */
+const defaultItems = [
+  "2 Litre Water","1 Liter water","500 ML water","soda 750ml",
+  "600ml cool drinks","250ml cool drinks","5rs glass","3rs glass",
+  "mixer","cover big","cover medium","cover small"
+];
 
-Example:
-fetch(API_BASE + "/sales")
-fetch(API_BASE + "/send-email")
+let mrpData = [];
+let barData = [];
+let dailySales = {}; // dailySales[ISO] = [{name, qty, price, section}, ...]
 
-Everything works.
-*/
+
+/* ------------------------
+   Persistence
+   ------------------------ */
+function saveDataLocal() {
+  try {
+    localStorage.setItem("mrpData", JSON.stringify(mrpData));
+    localStorage.setItem("barData", JSON.stringify(barData));
+    localStorage.setItem("dailySales", JSON.stringify(dailySales));
+  } catch (e) {
+    console.warn("Could not save to localStorage:", e);
+  }
+}
+
+function loadDataLocal() {
+  try {
+    const m = localStorage.getItem("mrpData");
+    const b = localStorage.getItem("barData");
+    const s = localStorage.getItem("dailySales");
+    if (m) mrpData = JSON.parse(m);
+    if (b) barData = JSON.parse(b);
+    if (s) {
+      const parsed = JSON.parse(s);
+      // normalize keys to ISO
+      Object.keys(parsed).forEach(k => {
+        const iso = /^\d{4}-\d{2}-\d{2}$/.test(k) ? k : toISO(new Date(k));
+        if (!dailySales[iso]) dailySales[iso] = parsed[k];
+      });
+    }
+  } catch (e) {
+    console.warn("Error loading local data:", e);
+  }
+}
+
+/* ------------------------
+   Backend sync
+   - Sends aggregated counts (mrp/bar) to /api/sales
+   ------------------------ */
+async function saveSummaryToBackend(dateISO) {
+  const entries = dailySales[dateISO] || [];
+  // build summary with counts (not monetary totals) because server expects counts
+  const summary = {};
+  entries.forEach(e => {
+    if (!summary[e.name]) summary[e.name] = { mrp: 0, bar: 0 };
+    const k = (e.section || "").toLowerCase() === "mrp" ? "mrp" : "bar";
+    summary[e.name][k] += Number(e.qty || 0);
+  });
+
+  try {
+    const res = await fetch(API_BASE + "/sales", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: dateISO, sales: summary })
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>null);
+      console.warn("Backend /sales non-ok:", res.status, txt);
+      return;
+    }
+    const data = await res.json().catch(()=>null);
+    console.log("Saved summary to backend:", data);
+  } catch (err) {
+    console.error("Error saving summary to backend:", err);
+  }
+}
+
+/* ------------------------
+   UI rendering
+   ------------------------ */
+function showSection(section, ev) {
+  document.querySelectorAll(".container").forEach(c => c.classList.remove("active-section"));
+  document.getElementById(section).classList.add("active-section");
+  document.querySelectorAll("nav a").forEach(a => a.classList.remove("active"));
+  if (ev && ev.currentTarget) ev.currentTarget.classList.add("active");
+  // keep keyboard focus semantics if needed
+}
+
+function renderMRP() {
+  const tbody = document.querySelector("#mrpTable tbody");
+  tbody.innerHTML = "";
+  mrpData.forEach((item, idx) => {
+    item.total = Number(item.opening || 0);
+    item.closing = item.total - Number(item.sales || 0) - Number(item.transferred || 0);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(item.name)}</td>
+      <td><input type="number" value="${Number(item.opening||0)}" onchange="updateOpening(${idx}, this.value)"></td>
+      <td><input type="number" value="${Number(item.price||0)}" onchange="updatePrice(${idx}, this.value)"></td>
+      <td>${Number(item.total||0)}</td>
+      <td>${Number(item.closing||0)}</td>
+      <td>${Number(item.sales||0)}</td>
+      <td><button onclick="sellFromMRP(${idx})">Sell</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderBar() {
+  const tbody = document.querySelector("#barTable tbody");
+  tbody.innerHTML = "";
+  barData.forEach((item, idx) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(item.name)}</td>
+      <td>${Number(item.stock||0)}</td>
+      <td>${Number(item.price||0)}</td>
+      <td><button onclick="sellFromBar(${idx})">Sell</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderDailySales() {
+  const div = document.getElementById("dailySales");
+  div.innerHTML = "";
+  const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
+  if (!dates.length) { div.innerHTML = "<p>No sales yet.</p>"; return; }
+  dates.forEach(d => {
+    const row = document.createElement("div");
+    row.className = "date-row";
+    row.textContent = isoToDisplay(d);
+    row.onclick = () => openModal(d);
+    div.appendChild(row);
+  });
+}
+
+/* ------------------------
+   Basic item editing functions
+   ------------------------ */
+function updateOpening(i, val) {
+  mrpData[i].opening = Math.max(0, parseInt(val||0)||0);
+  saveDataLocal(); renderMRP();
+}
+function updatePrice(i, val) {
+  mrpData[i].price = Math.max(0, parseFloat(val||0)||0);
+  saveDataLocal();
+}
+
+/* ------------------------
+   Sell/transfer and daily logging
+   ------------------------ */
+function sellFromMRP(i) {
+  const qty = parseInt(prompt("Enter quantity sold:")||"0",10);
+  if (!qty || qty <= 0) return alert("Invalid quantity.");
+  const item = mrpData[i];
+  const closing = Number(item.opening||0) - Number(item.sales||0) - Number(item.transferred||0);
+  if (closing < qty) return alert("Not enough stock.");
+  item.sales = (item.sales||0) + qty;
+  // ensure bar record exists if needed
+  let barItem = barData.find(b => b.name === item.name);
+  if (!barItem) {
+    barItem = { name: item.name, stock: 0, price: item.price || 0, sales: 0 };
+    barData.push(barItem);
+  }
+  // if you want to move inventory to bar on sell, adjust here. Original logic adds as inward.
+  logDailySale(item.name, qty, Number(item.price||0), "MRP");
+  saveDataLocal(); renderMRP(); renderBar();
+}
+
+function sellFromBar(i) {
+  const qty = parseInt(prompt("Enter quantity sold:")||"0",10);
+  if (!qty || qty <= 0) return alert("Invalid quantity.");
+  const item = barData[i];
+  if (item.stock < qty) return alert("Not enough stock.");
+  item.stock = (item.stock||0) - qty;
+  item.sales = (item.sales||0) + qty;
+  logDailySale(item.name, qty, Number(item.price||0), "Bar");
+  saveDataLocal(); renderBar();
+}
+
+/* ------------------------
+   Daily sales logging
+   ------------------------ */
+function logDailySale(name, qty, price, section) {
+  const iso = toISO(new Date());
+  if (!dailySales[iso]) dailySales[iso] = [];
+  dailySales[iso].push({ name, qty: Number(qty||0), price: Number(price||0), section });
+  saveDataLocal();
+  renderDailySales();
+  // send summary counts to backend asynchronously
+  saveSummaryToBackend(iso);
+}
+
+/* ------------------------
+   Modal for a day's sales
+   ------------------------ */
+function openModal(dateISO) {
+  const modal = document.getElementById("salesModal");
+  modal.style.display = "flex";
+  modal.setAttribute("aria-hidden", "false");
+  document.getElementById("modalDate").textContent = `Sales Report - ${isoToDisplay(dateISO)}`;
+  const tbody = document.querySelector("#modalTable tbody");
+  tbody.innerHTML = "";
+
+  const entries = dailySales[dateISO] || [];
+  const summary = {}; // { product: { mrp: count, bar: count, price } }
+  let totalAmount = 0;
+  entries.forEach(e => {
+    if (!summary[e.name]) summary[e.name] = { mrp: 0, bar: 0, price: e.price || 0 };
+    if ((e.section || "").toLowerCase() === "mrp") summary[e.name].mrp += Number(e.qty||0);
+    else summary[e.name].bar += Number(e.qty||0);
+    summary[e.name].price = summary[e.name].price || e.price || 0;
+  });
+
+  Object.keys(summary).forEach(p => {
+    const mrp = summary[p].mrp || 0;
+    const bar = summary[p].bar || 0;
+    const price = Number(summary[p].price || 0);
+    const total = (mrp + bar) * price;
+    totalAmount += total;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${escapeHtml(p)}</td><td>${mrp}</td><td>${bar}</td><td>₹${total.toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  const totalRow = document.createElement("tr");
+  totalRow.className = "total-row";
+  totalRow.innerHTML = `<td colspan="3">Total Sales</td><td>₹${totalAmount.toFixed(2)}</td>`;
+  tbody.appendChild(totalRow);
+}
+
+function closeModal() {
+  const modal = document.getElementById("salesModal");
+  modal.style.display = "none";
+  modal.setAttribute("aria-hidden", "true");
+}
+window.onclick = (e) => {
+  const modal = document.getElementById("salesModal");
+  if (e.target === modal) closeModal();
+};
+
+/* ------------------------
+   Close bill (send email)
+   - sends POST /api/send-email { date: "YYYY-MM-DD" }
+   ------------------------ */
+async function closeBillToday() {
+  const iso = toISO(new Date());
+  if (!dailySales[iso] || dailySales[iso].length === 0) {
+    return alert("No sales recorded for today (" + isoToDisplay(iso) + ").");
+  }
+  if (!confirm("Send email report for " + isoToDisplay(iso) + " ?")) return;
+
+  try {
+    const res = await fetch(API_BASE + "/send-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: iso })
+    });
+
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch(e) { data = { raw: text }; }
+
+    if (!res.ok) {
+      console.error("send-email failed:", res.status, data);
+      alert("Email send failed. See console for details.");
+      return;
+    }
+
+    alert((data && data.message) ? data.message : "Email sent");
+    // optionally flag as closed so button disabled locally:
+    localStorage.setItem(`billClosed_${iso}`, "true");
+  } catch (err) {
+    console.error("closeBill error:", err);
+    alert("Network error while sending email. See console.");
+  }
+}
+
+/* ------------------------
+   small helpers
+   ------------------------ */
+function escapeHtml(s) {
+  if (s === null || s === undefined) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+/* ------------------------
+   Init & bootstrap
+   ------------------------ */
+function initializeItemsIfEmpty() {
+  if (!Array.isArray(mrpData) || mrpData.length === 0) {
+    mrpData = defaultItems.map(name => ({ name, opening: 0, price: 0, total: 0, transferred: 0, sales: 0 }));
+  }
+  if (!Array.isArray(barData)) barData = [];
+}
+
+window.addEventListener("DOMContentLoaded", async () => {
+  loadDataLocal();
+  initializeItemsIfEmpty();
+  renderMRP();
+  renderBar();
+  renderDailySales();
+
+  // Fetch server summaries and merge in if you want (optional)
+  try {
+    const res = await fetch(API_BASE + "/sales", { cache: "no-store" });
+    if (res.ok) {
+      const server = await res.json();
+      // server is { "YYYY-MM-DD": { product: { mrp: N, bar: M }, ... }, ... }
+      Object.keys(server || {}).forEach(dateISO => {
+        if (!dailySales[dateISO] || dailySales[dateISO].length === 0) {
+          const arr = [];
+          Object.entries(server[dateISO]).forEach(([product, vals]) => {
+            if (vals.mrp) arr.push({ name: product, qty: Number(vals.mrp || 0), price: 0, section: "MRP" });
+            if (vals.bar) arr.push({ name: product, qty: Number(vals.bar || 0), price: 0, section: "Bar" });
+          });
+          if (arr.length) dailySales[dateISO] = arr;
+        }
+      });
+      renderDailySales();
+      saveDataLocal();
+    } else {
+      console.info("/sales fetch not ok:", res.status);
+    }
+  } catch (e) {
+    console.info("Could not fetch server summaries:", e);
+  }
+});
 </script>
-
 </body>
 </html>
