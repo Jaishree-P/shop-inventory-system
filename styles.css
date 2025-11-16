@@ -241,3 +241,64 @@ input[type="number"]{
     padding:6px 10px;
   }
 }
+
+/* ============================
+   MOBILE HORIZONTAL CARD MODE
+============================ */
+@media (max-width: 768px) {
+
+  /* stop ALL the block conversions */
+  table, thead, tbody, th, td, tr {
+    display: revert; /* resets table layout */
+  }
+
+  thead {
+    display: none; /* hide header on mobile */
+  }
+
+  tbody tr {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow-x: auto;
+    white-space: nowrap;
+    margin-bottom: 14px;
+  }
+
+  tbody td {
+    flex-shrink: 0;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  tbody td input {
+    width: 80px;
+    font-size: 14px;
+  }
+
+  /* product name bigger */
+  tbody td:first-child {
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 120px;
+  }
+
+  /* Action buttons at end */
+  .action-cell {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .action-cell .btn {
+    min-width: 60px;
+    height: 36px;
+  }
+}
