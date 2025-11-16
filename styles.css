@@ -171,48 +171,58 @@ input[type="number"]{
    - No row conversion
    - No mini labels
    ===================================================== */
+/* =====================================================
+   MOBILE LAYOUT (FINAL FIX)
+   ===================================================== */
 @media (max-width: 768px) {
 
-  /* Keep table as table, DO NOT convert to cards */
-  table, thead, tbody, tr, th, td {
-    display: table;
+  /* FORCE real table layout */
+  table {
+    display: table !important;
+    border-collapse: collapse !important;
+  }
+  thead {
+    display: table-header-group !important;
+  }
+  tbody {
+    display: table-row-group !important;
+  }
+  tr {
+    display: table-row !important;
+  }
+  th, td {
+    display: table-cell !important;
+    vertical-align: middle;
+    white-space: nowrap;
+    padding: 10px;
+    font-size: 14px;
   }
 
-  /* Enable horizontal scroll for the whole table */
+  /* Entire table scroll */
   .table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
   }
 
-  /* Keep header visible */
-  thead {
-    display: table-header-group;
-  }
-
-  /* Clean mobile-friendly spacing */
-  th, td {
-    padding: 10px;
-    font-size: 14px;
-    white-space: nowrap;
-  }
-
-  /* Remove repeated labels */
+  /* Remove any leftover mobile labels */
   td::before {
+    display: none !important;
     content: none !important;
   }
 
-  /* Improve input tap size */
+  /* Bigger tap area */
   input[type="number"] {
-    padding: 10px;
+    padding: 12px;
     font-size: 15px;
   }
 
-  /* Buttons bigger for touch */
   .btn {
     padding: 8px 12px;
     font-size: 14px;
   }
 }
+
 
 /* small phones */
 @media (max-width: 420px) {
