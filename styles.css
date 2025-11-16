@@ -71,7 +71,7 @@ table{
   border-collapse:collapse;
   background:white;
   table-layout:fixed;
-  min-width:950px; /* allow desktop width, mobile will switch to card view */
+  min-width:950px; /* desktop default; mobile rules will override */
   border-radius:10px;
   overflow:hidden;
 }
@@ -151,48 +151,93 @@ input[type="number"]{
   color:#666;
 }
 
-/* MOBILE CARD MODE */
+/* ============================
+   MOBILE — OPTION A: Fully horizontal product rows
+   - Each product is a single horizontal row
+   - Row may be wider than viewport; table-wrap provides horizontal scroll
+   ============================ */
 @media (max-width: 768px){
 
-  table, thead, tbody, th, td, tr{
-    display:block;
-  }
+  /* Hide headers — we'll show product name as first cell */
   thead{ display:none; }
 
+  /* Make table and tbody block so each row can act independently */
+  table, tbody { display:block; width:100%; }
   tr{
+    display:flex;
+    gap:12px;
+    align-items:center;
     background:white;
     margin-bottom:12px;
-    padding:12px;
-    border-radius:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    padding:10px;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.06);
+    border:1px solid #eef3fa;
+    min-width:700px; /* make row wider than viewport so horizontal scroll appears */
   }
 
-  td{
-    display:flex;
-    justify-content:space-between;
+  /* Product name (first cell) visible and fixed width */
+  td:first-child{
+    flex: 0 0 160px;
+    font-weight:700;
+    font-size:16px;
+    color:var(--blue-darker);
     text-align:left;
+    padding-left:12px;
+    border-right:1px dashed #eee;
+    min-width:140px;
+  }
+
+  /* All other cells placed side-by-side, fixed minimum width */
+  td{
+    flex: 0 0 120px;
+    min-width:110px;
+    text-align:left;
+    padding:6px 10px;
     border:none;
-    padding:6px 4px;
-    font-size:15px;
+    white-space:nowrap;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
   }
 
-  td::before{
-    content:attr(data-label);
+  td .label{
+    font-size:12px;
+    color:#666;
+    margin-bottom:4px;
     font-weight:600;
-    color:#444;
-    margin-right:10px;
+  }
+  td .val{
+    font-size:14px;
+    font-weight:500;
+    color:#222;
   }
 
+  /* Inputs become compact */
+  td input[type="number"]{
+    width:100%;
+    padding:6px 8px;
+    font-size:14px;
+  }
+
+  /* Action cell: buttons inline */
   .action-cell{
     flex-direction:row;
-    justify-content:flex-end;
     gap:8px;
-    margin-top:10px;
+    justify-content:flex-end;
   }
 
+  /* Make overall table-wrap horizontally scrollable */
+  .table-wrap{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  /* Slightly larger tap targets */
   .btn{
-    min-width:80px;
-    height:34px;
+    min-width:46px;
+    height:36px;
     font-size:13px;
+    padding:6px 10px;
   }
 }
