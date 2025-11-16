@@ -132,7 +132,7 @@ function renderMRP() {
     const sales = +item.sales||0;
     const total = opening + purchase;
     const closing = total - sales - transferred;
-    const amount = sales * price;
+    const amount = (sales + transferred) * price; // updated: include transferred
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td data-label="Item">${escapeHtml(item.name)}</td>
@@ -178,6 +178,7 @@ function transferToBar(i){
   const closing = (Number(item.opening||0)+Number(item.purchase||0))-Number(item.sales||0)-Number(item.transferred||0);
   if(closing < qty) return alert("Not enough stock.");
   item.transferred = Number(item.transferred||0)+qty;
+
   let b = barData.find(x=>x.name===item.name);
   if(!b){
     barData.push({name:item.name,opening:qty,price:item.mrpPrice||0,purchase:0,sales:0});
@@ -185,7 +186,19 @@ function transferToBar(i){
     b.opening = Number(b.opening||0)+qty;
     if((!b.price||b.price===0)&&item.mrpPrice) b.price=item.mrpPrice;
   }
-  saveData(); renderMRP(); renderBar();
+
+  // record transfer in dailySales for today's date
+  const date = toISO(new Date());
+  if(!dailySales[date]) dailySales[date] = [];
+  dailySales[date].push({
+    name: item.name,
+    qty: qty,
+    price: item.mrpPrice || 0,
+    section: "MRP",
+    isTransfer: true
+  });
+
+  saveData(); renderMRP(); renderBar(); renderDailySales();
 }
 
 function sellFromMRP(i){
@@ -197,7 +210,7 @@ function sellFromMRP(i){
   item.sales=Number(item.sales||0)+qty;
   const date=toISO(new Date());
   if(!dailySales[date]) dailySales[date]=[];
-  dailySales[date].push({name:item.name,qty,price:item.mrpPrice||0,section:"MRP"});
+  dailySales[date].push({name:item.name,qty,price:item.mrpPrice||0,section:"MRP", isTransfer: false});
   saveData(); saveSummaryToBackend(date);
   renderMRP(); renderBar(); renderDailySales();
 }
@@ -258,7 +271,7 @@ function sellFromBar(i){
   item.sales=Number(item.sales||0)+qty;
   const date=toISO(new Date());
   if(!dailySales[date]) dailySales[date]=[];
-  dailySales[date].push({name:item.name,qty,price:item.price||0,section:"Bar"});
+  dailySales[date].push({name:item.name,qty,price:item.price||0,section:"Bar", isTransfer: false});
   saveData(); saveSummaryToBackend(date);
   renderBar(); renderDailySales();
 }
@@ -268,8 +281,12 @@ function saveSummaryToBackend(dateISO){
     const summary={};
     (dailySales[dateISO]||[]).forEach(s=>{
       if(!summary[s.name]) summary[s.name]={mrp:0,bar:0};
-      if((s.section||"").toLowerCase()==="mrp") summary[s.name].mrp+=Number(s.qty||0);
-      else summary[s.name].bar+=Number(s.qty||0);
+      if((s.section||"").toLowerCase()==="mrp") {
+        // only count sold quantities (non-transfers) for mrp sales in summary mrp count
+        if(!s.isTransfer) summary[s.name].mrp += Number(s.qty||0);
+      } else {
+        summary[s.name].bar += Number(s.qty||0);
+      }
     });
     fetch(API_BASE+"/sales",{
       method:"POST",
@@ -278,6 +295,7 @@ function saveSummaryToBackend(dateISO){
     }).catch(console.error);
   }catch(e){ console.error(e); }
 }
+
 
 function renderDailySales(){
   const div=document.getElementById("dailySales");
@@ -288,42 +306,68 @@ function renderDailySales(){
     div.innerHTML="<p>No sales recorded yet.</p>";
     return;
   }
+
   const wrap=document.createElement("div");
   wrap.style.overflowX="auto";
+
   const table=document.createElement("table");
-  table.style.minWidth="760px";
-  table.innerHTML=`
+  table.style.minWidth="900px";
+  table.innerHTML = `
     <thead>
       <tr>
-        <th>Date</th><th>MRP</th><th>Bar</th><th>Revenue(₹)</th><th>Actions</th>
+        <th>Date</th>
+        <th>MRP Sales</th>
+        <th>MRP Transfers</th>
+        <th>MRP Amount (₹)</th>
+        <th>Bar Sales</th>
+        <th>Bar Amount (₹)</th>
+        <th>Actions</th>
       </tr>
     </thead>
-    <tbody></tbody>`;
-  const tbody=table.querySelector("tbody");
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
 
   dates.forEach(date=>{
-    const entries=dailySales[date]||[];
-    const summary={}; let totalAmount=0;
+    const entries = dailySales[date] || [];
+
+    let mrpSales = 0;
+    let mrpTransfers = 0;
+    let mrpAmount = 0;
+
+    let barSales = 0;
+    let barAmount = 0;
+
     entries.forEach(s=>{
-      if(!summary[s.name]) summary[s.name]={mrp:0,bar:0,price:s.price};
-      if(s.section==="MRP") summary[s.name].mrp+=s.qty;
-      else summary[s.name].bar+=s.qty;
-    });
-    Object.values(summary).forEach(s=>{
-      totalAmount+=(s.mrp+s.bar)*s.price;
+      const qty = Number(s.qty||0);
+      const price = Number(s.price||0);
+      if((s.section||"") === "MRP") {
+        if(s.isTransfer) {
+          mrpTransfers += qty;
+          mrpAmount += qty * price; // transfers included in mrp amount
+        } else {
+          mrpSales += qty;
+          mrpAmount += qty * price;
+        }
+      } else if((s.section||"") === "Bar") {
+        barSales += qty;
+        barAmount += qty * price;
+      }
     });
 
     const tr=document.createElement("tr");
-    tr.innerHTML=`
+    tr.innerHTML = `
       <td>${isoToDisplay(date)}</td>
-      <td>${Object.values(summary).reduce((a,c)=>a+c.mrp,0)}</td>
-      <td>${Object.values(summary).reduce((a,c)=>a+c.bar,0)}</td>
-      <td>₹${totalAmount.toFixed(2)}</td>
+      <td>${mrpSales}</td>
+      <td>${mrpTransfers}</td>
+      <td>₹${mrpAmount.toFixed(2)}</td>
+      <td>${barSales}</td>
+      <td>₹${barAmount.toFixed(2)}</td>
       <td>
         <button class="btn view" data-date="${date}">View</button>
-        <button class="btn edit" data-date="${date}">Edit</button>
-        <button class="btn danger close-bill" data-date="${date}">Close Bill</button>
-        <button class="btn secondary del-day" data-date="${date}">Delete</button>
+        <button class="btn edit" data-date="${date}" style="margin-left:6px">Edit</button>
+        <button class="btn danger close-bill" data-date="${date}" style="margin-left:6px">Close Bill</button>
+        <button class="btn secondary del-day" data-date="${date}" style="margin-left:6px">Delete Day</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -348,15 +392,16 @@ function renderDailySales(){
   div.querySelectorAll("button.del-day").forEach(b =>
     b.addEventListener("click",()=>{
       const d=b.dataset.date;
-      if(!confirm("Delete entire day: "+isoToDisplay(d)+" ?")) return;
+      if(!confirm("Delete entire day's data for "+isoToDisplay(d)+" ? This cannot be undone.")) return;
       delete dailySales[d];
       localStorage.removeItem(`billClosed_${d}`);
-      saveData(); renderDailySales();
+      saveData();
+      renderDailySales();
     })
   );
 }
 
-
+/* modal (preserve isTransfer flag on rows) */
 function openModal(dateISO, opts={readonly:false}) {
   currentModalDate = dateISO;
   const modal = document.getElementById("salesModal");
@@ -392,6 +437,8 @@ function openModal(dateISO, opts={readonly:false}) {
   entries.forEach((e,idx)=>{
     const tr=document.createElement("tr");
     tr.dataset.idx=idx;
+    // preserve transfer flag on row
+    if (e.isTransfer) tr.dataset.isTransfer = "true";
     tr.innerHTML=`
       <td>${escapeHtml(e.name)}</td>
       <td>${escapeHtml(e.section)}</td>
@@ -504,7 +551,7 @@ function openModal(dateISO, opts={readonly:false}) {
           ?(mrpData.find(x=>x.name===name)?.mrpPrice||0)
           :(barData.find(x=>x.name===name)?.price||0);
       }
-      dailySales[dateISO].push({name,qty,price,section});
+      dailySales[dateISO].push({name,qty,price,section, isTransfer:false});
       saveData(); saveSummaryToBackend(dateISO);
       openModal(dateISO,{readonly:false});
       renderDailySales();
@@ -517,7 +564,8 @@ function openModal(dateISO, opts={readonly:false}) {
         const section=r.children[1].textContent;
         const qty=Number(r.querySelector(".modal-qty").value||0);
         const price=Number(r.querySelector(".modal-price").value||0);
-        return {name,qty,price,section};
+        const isTransfer = r.dataset.isTransfer === "true";
+        return {name,qty,price,section, isTransfer: !!isTransfer};
       });
       dailySales[dateISO]=newEntries;
       saveData(); saveSummaryToBackend(dateISO);

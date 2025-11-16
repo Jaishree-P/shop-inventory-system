@@ -32,6 +32,22 @@
       "2 Litre Water": {
         "mrp": 0,
         "bar": 5
+      },
+      "1 Liter water": {
+        "mrp": 1,
+        "bar": 0
+      },
+      "500 ML water": {
+        "mrp": 0,
+        "bar": 7
+      },
+      "600ml cool drinks": {
+        "mrp": 5,
+        "bar": 5
+      },
+      "5rs glass": {
+        "mrp": 2,
+        "bar": 2
       }
     }
   }
