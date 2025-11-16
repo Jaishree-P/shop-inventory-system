@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shop Inventory System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav>
+    <div class="brand">Shop Inventory</div>
+    <a id="nav-mrp" class="active" onclick="showSection('mrp')">MRP Section</a>
+    <a id="nav-bar" onclick="showSection('bar')">Bar Section</a>
+    <a id="nav-dashboard" onclick="showSection('dashboard')">Dashboard</a>
+  </nav>
+
+  <!-- MRP -->
+  <div id="mrp" class="container active-section">
+    <h2>MRP Section</h2>
+    <div class="table-wrap">
+      <table id="mrpTable" aria-label="MRP table">
+        <thead>
+          <tr>
+            <th>Items</th>
+            <th>Opening Balance</th>
+            <th>Amt per Quantity</th>
+            <th>Purchase</th>
+            <th>Transferred</th>
+            <th>Total</th>
+            <th>Closing Balance</th>
+            <th>Sales</th>
+            <th>Amount</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="info">On mobile: horizontally scroll to see all columns. All inputs are numeric-only.</p>
+  </div>
+
+  <!-- Bar -->
+  <div id="bar" class="container">
+    <h2>Bar Section</h2>
+    <div class="table-wrap">
+      <table id="barTable" aria-label="Bar table">
+        <thead>
+          <tr>
+            <th>Items</th>
+            <th>Stock (Inward)</th>
+            <th>Bar Price</th>
+            <th>Sold (Bar)</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="info">Inputs are numeric-only (mobile numeric keyboard enabled).</p>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="container">
+    <h2>Daily Sales Report</h2>
+    <div id="dailySales" class="table-wrap"></div>
+    <p class="small-muted">
+      Each row: View (read-only), Edit (edit in modal), Close Bill (send email), Delete Day.
+    </p>
+  </div>
+
+  <!-- Modal -->
+  <div id="salesModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalDate">Sales Report</h3>
+        <button class="close-btn" id="modalCloseBtn">&times;</button>
+      </div>
+
+      <div id="modalBody">
+        <div class="table-wrap" style="margin-bottom:12px;">
+          <table class="modal-table" id="modalTable" aria-label="Modal sales table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Section</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Amount</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:8px;">
+          <h4 style="margin:0 0 8px 0;">Add / Edit Sold Item for this date</h4>
+          <div class="form-row">
+            <select id="addProductSelect" aria-label="Select product"></select>
+            <input id="addQty" type="number" inputmode="numeric" pattern="\d*" min="1"
+                   placeholder="Quantity" value="1" aria-label="Quantity" />
+            <input id="addPrice" type="number" inputmode="numeric" pattern="\d*" min="0"
+                   placeholder="Amt per Quantity" value="0" aria-label="Amount per quantity" />
+            <select id="addSection" aria-label="Section">
+              <option>MRP</option>
+              <option>Bar</option>
+            </select>
+            <button class="btn" id="modalAddBtn">Add</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; text-align:right;">
+          <button class="btn secondary" id="modalSaveBtn">Save</button>
+          <button class="btn danger" id="modalCloseBillBtn">📨 Close Bill</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

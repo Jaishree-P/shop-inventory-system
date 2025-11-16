@@ -1,6 +1,10 @@
 // server.js — Using BREVO for Email (No Domain Needed)
 
 // ----------------- IMPORTS --------------------
+
+require("dotenv").config();
+
+
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
@@ -138,6 +142,7 @@ app.post("/api/send-email", async (req, res) => {
 });
 
 // ----------------- START SERVER --------------------
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
+
