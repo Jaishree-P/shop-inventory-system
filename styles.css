@@ -163,96 +163,69 @@ input[type="number"]{
   color:#666;
 }
 
-/* ==============================
-   MOBILE: horizontal card + labels
-   - keeps desktop table untouched
-   - uses data-label attributes to show small labels
-   ============================== */
+/* =====================================================
+   MOBILE LAYOUT (final version)
+   - Keep full table format
+   - Header visible once
+   - Entire table scrolls left-right
+   - No row conversion
+   - No mini labels
+   ===================================================== */
 @media (max-width: 768px) {
 
-  /* Hide the table header */
-  thead { display: none; }
-
-  /* Each table row becomes a horizontal card with native horizontal scroll */
-  table, tbody { width:100%; }
-  tbody tr {
-    display:flex;
-    flex-direction:row;
-    align-items:center;
-    gap:12px;
-    background:var(--card);
-    margin-bottom:12px;
-    padding:12px;
-    border-radius:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.06);
-    border:1px solid #eef3fa;
-    overflow-x:auto;
-    white-space:nowrap;
+  /* Keep table as table, DO NOT convert to cards */
+  table, thead, tbody, tr, th, td {
+    display: table;
   }
 
-  /* Each cell is a vertical stack: small label above the value/input */
-  tbody td {
-    display:flex;
-    flex-direction:column;
-    align-items:flex-start;
-    justify-content:center;
-    min-width:92px;
-    padding:6px 10px;
-    border:none;
+  /* Enable horizontal scroll for the whole table */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* mini label shown from data-label */
-  tbody td::before{
-    content: attr(data-label);
-    font-size:12px;
-    font-weight:600;
-    color:#555;
-    margin-bottom:6px;
-    display:block;
+  /* Keep header visible */
+  thead {
+    display: table-header-group;
   }
 
-  /* product name more prominent and wider */
-  tbody td:first-child{
-    font-size:15px;
-    font-weight:700;
-    color:var(--blue-darker);
-    min-width:140px;
+  /* Clean mobile-friendly spacing */
+  th, td {
+    padding: 10px;
+    font-size: 14px;
+    white-space: nowrap;
   }
 
-  /* inputs sized for mobile */
-  tbody td input[type="number"]{
-    width:100%;
-    padding:8px;
-    font-size:14px;
-    border-radius:6px;
+  /* Remove repeated labels */
+  td::before {
+    content: none !important;
   }
 
-  /* action buttons vertical stack for better tap targets */
-  .action-cell{
-    flex-direction:row;
-    gap:8px;
-    justify-content:flex-end;
-    min-width:120px;
+  /* Improve input tap size */
+  input[type="number"] {
+    padding: 10px;
+    font-size: 15px;
   }
 
-  .btn{
-    min-width:64px;
-    height:38px;
-    font-size:13px;
-    padding:6px 10px;
-  }
-
-  /* ensure table-wrap allows horizontal scroll but doesn't clip cards */
-  .table-wrap{
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    padding-bottom:6px;
+  /* Buttons bigger for touch */
+  .btn {
+    padding: 8px 12px;
+    font-size: 14px;
   }
 }
 
-/* minor responsive tweaks for small phones */
+/* small phones */
 @media (max-width: 420px) {
-  tbody td:first-child { min-width:120px; }
-  tbody td { min-width:86px; }
-  .action-cell { min-width:100px; }
+  th, td {
+    font-size: 13px;
+    padding: 8px;
+  }
+  input[type="number"] {
+    font-size: 14px;
+    padding: 8px;
+  }
+  .btn {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
 }
