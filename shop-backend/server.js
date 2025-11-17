@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
-const nodemailer = require("nodemailer");
+const SibApiV3Sdk = require("sib-api-v3-sdk");
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -12,24 +12,21 @@ app.use(express.json());
 app.use(cors());
 
 // ----------------- LOAD ENV --------------------
-const EMAIL_USER = process.env.EMAIL_USER;
-const EMAIL_PASS = process.env.EMAIL_PASS;
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM; // This must be verified in Brevo
 const EMAIL_TO = process.env.EMAIL_TO;
 
-if (!EMAIL_USER || !EMAIL_PASS || !EMAIL_TO) {
+if (!BREVO_API_KEY || !EMAIL_FROM || !EMAIL_TO) {
   console.error("❌ Missing environment variables!");
 }
 
-// ----------------- GMAIL TRANSPORT --------------------
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS, // Gmail App Password
-  },
-});
+// ----------------- CONFIGURE BREVO --------------------
+const brevoClient = SibApiV3Sdk.ApiClient.instance;
+brevoClient.authentications["api-key"].apiKey = BREVO_API_KEY;
 
-// ----------------- DATA FILE --------------------
+const brevoEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
+
+// ----------------- SALES DATA FILE --------------------
 const DATA_FILE = "salesData.json";
 
 if (!fs.existsSync(DATA_FILE)) {
@@ -74,28 +71,34 @@ function buildReportHtml(dateISO, salesObj) {
 }
 
 // ----------------- API ROUTES --------------------
+
+// Save daily summary
 app.post("/api/sales", (req, res) => {
   try {
     const { date, sales } = req.body;
     const data = getData();
     data.dailySales[date] = sales;
     saveData(data);
+
     res.json({ message: "Sales saved" });
   } catch (err) {
+    console.error("Save sales error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// Get all sales
 app.get("/api/sales", (req, res) => {
   try {
     const data = getData();
     res.json(data.dailySales);
   } catch (err) {
+    console.error("Get sales error:", err);
     res.status(500).json({ error: "Server error reading sales" });
   }
 });
 
-// SEND EMAIL
+// SEND EMAIL via Brevo
 app.post("/api/send-email", async (req, res) => {
   try {
     const dateISO = req.body?.date || new Date().toISOString().split("T")[0];
@@ -108,24 +111,29 @@ app.post("/api/send-email", async (req, res) => {
 
     const { html, totalUnits } = buildReportHtml(dateISO, daySales);
 
-    await transporter.sendMail({
-      from: EMAIL_USER,
-      to: EMAIL_TO,
+    const emailData = {
+      sender: { email: EMAIL_FROM },
+      to: [{ email: EMAIL_TO }],
       subject: `Daily Sales Report - ${dateISO} (Units: ${totalUnits})`,
-      html,
-    });
+      htmlContent: html
+    };
+
+    const response = await brevoEmailApi.sendTransacEmail(emailData);
+    console.log("📧 Email sent:", response);
 
     res.json({ success: true, message: "Email sent" });
+
   } catch (err) {
+    console.error("❌ Email error:", err);
     res.status(500).json({
       success: false,
       message: "Email failed",
-      error: err.message,
+      error: err.message
     });
   }
 });
 
-// ----------------- START SERVER (IMPORTANT FOR RENDER) --------------------
+// ----------------- START SERVER --------------------
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
