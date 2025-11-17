@@ -125,7 +125,7 @@ app.post("/api/send-email", async (req, res) => {
   }
 });
 
-// ----------------- START SERVER (IMPORTANT FIX FOR RENDER) --------------------
-app.listen(PORT, () => {
+// ----------------- START SERVER (IMPORTANT FOR RENDER) --------------------
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
