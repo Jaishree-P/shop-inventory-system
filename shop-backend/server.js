@@ -3,30 +3,46 @@ require("dotenv").config();
 const express = require("express");
 const fs = require("fs");
 const cors = require("cors");
-const SibApiV3Sdk = require("sib-api-v3-sdk");
+const nodemailer = require("nodemailer");
 
 const app = express();
 const PORT = process.env.PORT || 5050;
 
 app.use(express.json());
-app.use(cors());
+
+// ---- CORS -----
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"],
+}));
+
 
 // ----------------- LOAD ENV --------------------
-const BREVO_API_KEY = process.env.BREVO_API_KEY;
-const EMAIL_FROM = process.env.EMAIL_FROM; // This must be verified in Brevo
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = process.env.SMTP_PORT;
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+
+const EMAIL_FROM = process.env.EMAIL_FROM;
 const EMAIL_TO = process.env.EMAIL_TO;
 
-if (!BREVO_API_KEY || !EMAIL_FROM || !EMAIL_TO) {
+if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS || !EMAIL_FROM || !EMAIL_TO) {
   console.error("❌ Missing environment variables!");
 }
 
-// ----------------- CONFIGURE BREVO --------------------
-const brevoClient = SibApiV3Sdk.ApiClient.instance;
-brevoClient.authentications["api-key"].apiKey = BREVO_API_KEY;
+// ----------------- SMTP TRANSPORT (BREVO SMTP) --------------------
+const transporter = nodemailer.createTransport({
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  secure: false,
+  auth: {
+    user: SMTP_USER,
+    pass: SMTP_PASS,
+  },
+});
 
-const brevoEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
-
-// ----------------- SALES DATA FILE --------------------
+// ----------------- DATA FILE --------------------
 const DATA_FILE = "salesData.json";
 
 if (!fs.existsSync(DATA_FILE)) {
@@ -72,7 +88,7 @@ function buildReportHtml(dateISO, salesObj) {
 
 // ----------------- API ROUTES --------------------
 
-// Save daily summary
+// Save sales summary to file
 app.post("/api/sales", (req, res) => {
   try {
     const { date, sales } = req.body;
@@ -94,11 +110,11 @@ app.get("/api/sales", (req, res) => {
     res.json(data.dailySales);
   } catch (err) {
     console.error("Get sales error:", err);
-    res.status(500).json({ error: "Server error reading sales" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// SEND EMAIL via Brevo
+// SEND EMAIL using Brevo SMTP
 app.post("/api/send-email", async (req, res) => {
   try {
     const dateISO = req.body?.date || new Date().toISOString().split("T")[0];
@@ -111,15 +127,12 @@ app.post("/api/send-email", async (req, res) => {
 
     const { html, totalUnits } = buildReportHtml(dateISO, daySales);
 
-    const emailData = {
-      sender: { email: EMAIL_FROM },
-      to: [{ email: EMAIL_TO }],
+    await transporter.sendMail({
+      from: EMAIL_FROM,
+      to: EMAIL_TO,
       subject: `Daily Sales Report - ${dateISO} (Units: ${totalUnits})`,
-      htmlContent: html
-    };
-
-    const response = await brevoEmailApi.sendTransacEmail(emailData);
-    console.log("📧 Email sent:", response);
+      html: html,
+    });
 
     res.json({ success: true, message: "Email sent" });
 
@@ -128,7 +141,7 @@ app.post("/api/send-email", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Email failed",
-      error: err.message
+      error: err.message,
     });
   }
 });
