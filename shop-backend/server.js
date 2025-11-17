@@ -9,40 +9,33 @@ const app = express();
 const PORT = process.env.PORT || 5050;
 
 app.use(express.json());
-
-// ---- CORS -----
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"],
-}));
-
+app.use(cors());
 
 // ----------------- LOAD ENV --------------------
-const SMTP_HOST = process.env.SMTP_HOST;
-const SMTP_PORT = process.env.SMTP_PORT;
-const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
-
 const EMAIL_FROM = process.env.EMAIL_FROM;
 const EMAIL_TO = process.env.EMAIL_TO;
 
-if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS || !EMAIL_FROM || !EMAIL_TO) {
-  console.error("❌ Missing environment variables!");
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_PORT = process.env.SMTP_PORT || 587;
+
+if (!EMAIL_FROM || !EMAIL_TO || !SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+  console.error("❌ Missing SMTP environment variables!");
 }
 
-// ----------------- SMTP TRANSPORT (BREVO SMTP) --------------------
+// ----------------- CONFIGURE SMTP TRANSPORT --------------------
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
   port: SMTP_PORT,
-  secure: false,
+  secure: false, // Brevo uses STARTTLS, so secure:false
   auth: {
     user: SMTP_USER,
     pass: SMTP_PASS,
   },
 });
 
-// ----------------- DATA FILE --------------------
+// ----------------- SALES DATA FILE --------------------
 const DATA_FILE = "salesData.json";
 
 if (!fs.existsSync(DATA_FILE)) {
@@ -87,8 +80,6 @@ function buildReportHtml(dateISO, salesObj) {
 }
 
 // ----------------- API ROUTES --------------------
-
-// Save sales summary to file
 app.post("/api/sales", (req, res) => {
   try {
     const { date, sales } = req.body;
@@ -103,14 +94,13 @@ app.post("/api/sales", (req, res) => {
   }
 });
 
-// Get all sales
 app.get("/api/sales", (req, res) => {
   try {
     const data = getData();
     res.json(data.dailySales);
   } catch (err) {
     console.error("Get sales error:", err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error reading sales" });
   }
 });
 
@@ -127,12 +117,15 @@ app.post("/api/send-email", async (req, res) => {
 
     const { html, totalUnits } = buildReportHtml(dateISO, daySales);
 
-    await transporter.sendMail({
+    const mailOptions = {
       from: EMAIL_FROM,
       to: EMAIL_TO,
       subject: `Daily Sales Report - ${dateISO} (Units: ${totalUnits})`,
       html: html,
-    });
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("📧 Email sent:", info);
 
     res.json({ success: true, message: "Email sent" });
 
