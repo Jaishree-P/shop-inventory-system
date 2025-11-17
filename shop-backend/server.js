@@ -25,7 +25,7 @@ const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: EMAIL_USER,
-    pass: EMAIL_PASS, // app password from Google
+    pass: EMAIL_PASS, // Gmail App Password
   },
 });
 
@@ -39,19 +39,24 @@ if (!fs.existsSync(DATA_FILE)) {
 function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
+
 function getData() {
   return JSON.parse(fs.readFileSync(DATA_FILE));
 }
 
 // ----------------- BUILD EMAIL HTML --------------------
 function buildReportHtml(dateISO, salesObj) {
-  let html = `<h2>Daily Sales Report - ${dateISO}</h2>`;
-  html += `<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
-           <tr style="background:#eef">
-             <th>Product</th><th>MRP Sales</th><th>Bar Sales</th>
-           </tr>`;
+  let html = `
+    <h2>Daily Sales Report - ${dateISO}</h2>
+    <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse;">
+      <tr style="background:#eef">
+        <th>Product</th>
+        <th>MRP Sales</th>
+        <th>Bar Sales</th>
+      </tr>
+  `;
 
-  let total = 0;
+  let totalUnits = 0;
 
   for (const [product, val] of Object.entries(salesObj || {})) {
     html += `
@@ -59,23 +64,22 @@ function buildReportHtml(dateISO, salesObj) {
         <td>${product}</td>
         <td>${val.mrp || 0}</td>
         <td>${val.bar || 0}</td>
-      </tr>`;
-    total += (val.mrp || 0) + (val.bar || 0);
+      </tr>
+    `;
+    totalUnits += (val.mrp || 0) + (val.bar || 0);
   }
 
-  html += `</table><p><b>Total Units:</b> ${total}</p>`;
-  return { html, total };
+  html += `</table><p><b>Total Units Sold:</b> ${totalUnits}</p>`;
+  return { html, totalUnits };
 }
 
 // ----------------- API ROUTES --------------------
 app.post("/api/sales", (req, res) => {
   try {
     const { date, sales } = req.body;
-
     const data = getData();
     data.dailySales[date] = sales;
     saveData(data);
-
     res.json({ message: "Sales saved" });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
@@ -95,7 +99,6 @@ app.get("/api/sales", (req, res) => {
 app.post("/api/send-email", async (req, res) => {
   try {
     const dateISO = req.body?.date || new Date().toISOString().split("T")[0];
-
     const data = getData();
     const daySales = data.dailySales[dateISO];
 
@@ -103,16 +106,16 @@ app.post("/api/send-email", async (req, res) => {
       return res.json({ success: false, message: "No sales for this date" });
     }
 
-    const { html, total } = buildReportHtml(dateISO, daySales);
+    const { html, totalUnits } = buildReportHtml(dateISO, daySales);
 
     await transporter.sendMail({
       from: EMAIL_USER,
       to: EMAIL_TO,
-      subject: `Daily Sales Report - ${dateISO} (Units: ${total})`,
-      html: html,
+      subject: `Daily Sales Report - ${dateISO} (Units: ${totalUnits})`,
+      html,
     });
 
-    return res.json({ success: true, message: "Email sent" });
+    res.json({ success: true, message: "Email sent" });
   } catch (err) {
     res.status(500).json({
       success: false,
@@ -122,7 +125,7 @@ app.post("/api/send-email", async (req, res) => {
   }
 });
 
-// ----------------- START SERVER --------------------
-app.listen(PORT, "127.0.0.1", () => {
-  console.log(`🚀 Server running at http://127.0.0.1:${PORT}`);
+// ----------------- START SERVER (IMPORTANT FIX FOR RENDER) --------------------
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
