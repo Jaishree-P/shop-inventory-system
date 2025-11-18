@@ -1,54 +1,5 @@
 {
-  "dailySales": {
-    "2025-11-12": {
-      "2 Litre Water": {
-        "mrp": 8,
-        "bar": 17
-      },
-      "1 Liter water": {
-        "mrp": 5,
-        "bar": 12
-      }
-    },
-    "2025-12-10": {
-      "2 Litre Water": {
-        "mrp": 5,
-        "bar": 4
-      },
-      "1 Liter water": {
-        "mrp": 5,
-        "bar": 3
-      },
-      "500 ML water": {
-        "mrp": 5,
-        "bar": 3
-      },
-      "5rs glass": {
-        "mrp": 0,
-        "bar": 1
-      }
-    },
-    "2025-11-16": {
-      "2 Litre Water": {
-        "mrp": 0,
-        "bar": 5
-      },
-      "1 Liter water": {
-        "mrp": 1,
-        "bar": 0
-      },
-      "500 ML water": {
-        "mrp": 0,
-        "bar": 7
-      },
-      "600ml cool drinks": {
-        "mrp": 5,
-        "bar": 5
-      },
-      "5rs glass": {
-        "mrp": 2,
-        "bar": 2
-      }
-    }
-  }
+  "mrp": [],
+  "bar": [],
+  "dailySales": {}
 }

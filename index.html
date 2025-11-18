@@ -6,7 +6,9 @@
   <title>Shop Inventory System</title>
   <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
+
   <nav>
     <div class="brand">Shop Inventory</div>
     <a id="nav-mrp" class="active" onclick="showSection('mrp')">MRP</a>
@@ -19,13 +21,14 @@
   <!-- MRP -->
   <div id="mrp" class="container active-section">
     <h2>MRP Section</h2>
+
     <div class="table-wrap">
-      <table id="mrpTable" aria-label="MRP table">
+      <table id="mrpTable">
         <thead>
           <tr>
             <th>Item</th>
-            <th>Opening Balance</th>
-            <th>Amt / Qty</th>
+            <th>Opening</th>
+            <th>MRP Price</th>
             <th>Inward</th>
             <th>Total</th>
             <th>Closing</th>
@@ -37,19 +40,19 @@
         <tbody></tbody>
       </table>
     </div>
-    <p class="info">On mobile the whole table scrolls left/right. Opening becomes locked after first non-zero entry.</p>
   </div>
 
-  <!-- Bar -->
+  <!-- BAR -->
   <div id="bar" class="container">
     <h2>Bar Section</h2>
+
     <div class="table-wrap">
-      <table id="barTable" aria-label="Bar table">
+      <table id="barTable">
         <thead>
           <tr>
             <th>Item</th>
-            <th>Opening Balance</th>
-            <th>Amt / Qty</th>
+            <th>Opening</th>
+            <th>Price</th>
             <th>Inward</th>
             <th>Total</th>
             <th>Closing</th>
@@ -61,98 +64,43 @@
         <tbody></tbody>
       </table>
     </div>
-    <p class="info">Bar section uses same formulas as MRP. Transfers are handled in the Transfer tab.</p>
   </div>
 
-  <!-- Transfer -->
+  <!-- TRANSFER -->
   <div id="transfer" class="container">
     <h2>Transfer Stock</h2>
+
     <div class="transfer-panel">
-      <label>
-        Direction:
-        <select id="transferDirection" aria-label="Transfer direction">
+      <label>Direction:
+        <select id="transferDirection">
           <option value="MRP_TO_BAR">MRP → Bar</option>
           <option value="BAR_TO_MRP">Bar → MRP</option>
         </select>
       </label>
 
-      <label>
-        Product:
+      <label>Product:
         <select id="transferProduct"></select>
       </label>
 
-      <label>
-        Quantity:
+      <label>Qty:
         <input id="transferQty" type="number" min="1" value="1">
       </label>
 
-      <label>
-        Use price from source (read-only):
+      <label>Price (auto):
         <input id="transferPrice" type="number" readonly>
       </label>
 
-      <div style="margin-left:8px;">
-        <button class="btn transfer" id="doTransferBtn">Transfer</button>
-      </div>
+      <button class="btn" id="doTransferBtn">Transfer</button>
     </div>
-
-    <p class="info">Choose direction and product to move stock between MRP and Bar. Source price is used for transfer entries.</p>
   </div>
 
-  <!-- Dashboard -->
+  <!-- DASHBOARD -->
   <div id="dashboard" class="container">
     <h2>Daily Sales Report</h2>
-
-    
-    
-
-    <div id="dailySales" class="table-wrap" style="margin-top:12px;"></div>
-
+    <div id="dailySales" class="table-wrap"></div>
   </div>
 
-  <!-- Modal (used for daily summary and edit) -->
-  <div id="salesModal" class="modal" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modalDate">Sales Report</h3>
-        <button class="close-btn" id="modalCloseBtn">&times;</button>
-      </div>
-
-      <div id="modalBody">
-        <div class="table-wrap" style="margin-bottom:12px;">
-          <table class="modal-table" id="modalTable" aria-label="Modal sales table">
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Section</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Amount</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
-        <div id="modalControls" style="margin-top:8px; display:flex; gap:8px; align-items:center;">
-          <select id="addProductSelect" aria-label="Select product"></select>
-          <input id="addQty" type="number" min="1" value="1" placeholder="Qty">
-          <input id="addPrice" type="number" min="0" value="0" placeholder="Price">
-          <select id="addSection">
-            <option>MRP</option>
-            <option>Bar</option>
-          </select>
-          <button class="btn" id="modalAddBtn">Add</button>
-          <div style="flex:1"></div>
-          <button class="btn secondary" id="modalSaveBtn">Save</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- toast -->
-  <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+  <div id="toast" class="toast"></div>
 
   <script src="script.js"></script>
 </body>
