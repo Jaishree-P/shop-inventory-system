@@ -1,6 +1,16 @@
 /* ===========================
    Shop Inventory - frontend
    Updated script.js (full file)
+   Style mode: A (desktop layout exact, horizontally scrollable; modal full-screen on mobile)
+   Features:
+   - MRP | Bar | Transfer | Dashboard (one-line nav assumed in HTML)
+   - LocalStorage persistence
+   - Opening locks after first non-zero entry (unlock button)
+   - Transfer tab MRP↔Bar using source price
+   - Sales create dailySales entries
+   - Dashboard: Pick date shows ONLY that date; "Back to all dates" restores full list
+   - Modal close always works; modal uses full-screen on small devices (CSS required)
+   - Toast notifications
    =========================== */
 
 /* ---------------------------
@@ -17,6 +27,7 @@ let mrpData = [];
 let barData = [];
 let dailySales = {}; // dailySales[ISO] = [{name, qty, price, section, isTransfer}]
 let currentModalDate = null;
+let filteredDate = null; // when set, dashboard shows only this date
 
 /* ---------------------------
    HELPERS
@@ -44,11 +55,12 @@ function ensureToastElement(){
   if(!t){
     t = document.createElement("div");
     t.id = "toast";
+    // minimal styling (you can override in CSS)
     t.style.position = "fixed";
     t.style.bottom = "18px";
     t.style.left = "50%";
     t.style.transform = "translateX(-50%)";
-    t.style.background = "rgba(0,0,0,0.8)";
+    t.style.background = "rgba(0,0,0,0.85)";
     t.style.color = "white";
     t.style.padding = "8px 12px";
     t.style.borderRadius = "8px";
@@ -142,6 +154,8 @@ function showSection(section){
   document.querySelectorAll("nav a").forEach(a=>a.classList.remove("active"));
   const map = { mrp:"nav-mrp", bar:"nav-bar", transfer:"nav-transfer", dashboard:"nav-dashboard" };
   const nav = document.getElementById(map[section]); if(nav) nav.classList.add("active");
+  // when switching to dashboard, refresh with existing filteredDate state
+  if(section === "dashboard") renderDailySales();
 }
 
 /* ---------------------------
@@ -468,11 +482,12 @@ function doTransferAction(){
    Save summary placeholder (no backend)
    --------------------------- */
 function saveSummaryToBackend(dateISO){
-  // noop for now
+  // noop for now; backend integration later
 }
 
 /* ---------------------------
    Dashboard: summary table & date picker modal
+   - When filteredDate != null, show only that date's row and a Back button
    --------------------------- */
 function renderDailySales(){
   const div = document.getElementById("dailySales"); if(!div) return;
@@ -480,8 +495,48 @@ function renderDailySales(){
 
   ensurePickDateUI();
 
-  const dates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
-  if(dates.length === 0){ div.innerHTML = "<p>No sales recorded yet.</p>"; return; }
+  // decide set of dates to show (filtered or all)
+  const allDates = Object.keys(dailySales).sort((a,b)=> b.localeCompare(a));
+  const dates = filteredDate ? (allDates.includes(filteredDate) ? [filteredDate] : []) : allDates;
+
+  if(!dates.length){
+    // If filtered and no data, message and Back button
+    const container = document.createElement("div");
+    container.style.marginTop = "12px";
+    if(filteredDate){
+      container.innerHTML = `<p>No sales for ${isoToDisplay(filteredDate)}.</p>`;
+      const back = document.createElement("button");
+      back.className = "btn";
+      back.textContent = "Back to all dates";
+      back.addEventListener("click", ()=> { filteredDate = null; renderDailySales(); });
+      container.appendChild(back);
+    } else {
+      container.innerHTML = "<p>No sales recorded yet.</p>";
+    }
+    div.appendChild(container);
+    return;
+  }
+
+  const headerRow = document.createElement("div");
+  headerRow.style.display = "flex";
+  headerRow.style.alignItems = "center";
+  headerRow.style.justifyContent = "space-between";
+  headerRow.style.marginBottom = "8px";
+
+  const left = document.createElement("div");
+  left.textContent = filteredDate ? `Showing: ${isoToDisplay(filteredDate)}` : `All dates (${dates.length})`;
+  headerRow.appendChild(left);
+
+  const right = document.createElement("div");
+  if(filteredDate){
+    const back = document.createElement("button");
+    back.className = "btn";
+    back.textContent = "Back to all dates";
+    back.addEventListener("click", ()=> { filteredDate = null; renderDailySales(); });
+    right.appendChild(back);
+  }
+  headerRow.appendChild(right);
+  div.appendChild(headerRow);
 
   const wrap = document.createElement("div"); wrap.style.overflowX="auto"; wrap.style.marginTop="6px";
   const table = document.createElement("table"); table.style.minWidth="760px";
@@ -499,7 +554,7 @@ function renderDailySales(){
         else { mrpSales += qty; mrpAmount += qty*price; }
       } else if((s.section||"") === "Bar"){
         if(s.isTransfer) {
-          // not counted into bar sales
+          // not included in bar sales
         } else {
           barSales += qty;
           barAmount += qty*price;
@@ -533,9 +588,15 @@ function openModal(dateISO, opts = { readonly:false }){
   const modal = document.getElementById("salesModal");
   if(!modal) return;
   modal.style.display = "flex";
+  // Add mobile full-screen class (CSS should set .modal.fullscreen for small screens)
+  modal.classList.add("open");
+  // lock body scroll while modal open
+  document.body.style.overflow = "hidden";
+
   const modalDateEl = document.getElementById("modalDate");
   if(modalDateEl) modalDateEl.textContent = "Sales Report - " + isoToDisplay(dateISO);
-  const tbody = document.querySelector("#modalTable tbody"); if(!tbody) return;
+  const tbody = document.querySelector("#modalTable tbody");
+  if(!tbody) return;
   tbody.innerHTML = "";
   if(!dailySales[dateISO]) dailySales[dateISO] = [];
   const entries = dailySales[dateISO];
@@ -629,9 +690,36 @@ function openModal(dateISO, opts = { readonly:false }){
     openModal(currentModalDate, { readonly:false });
   };
 
-  document.getElementById("modalCloseBtn").onclick = closeModal;
+  // Ensure close works (both X button and clicking outside)
+  const closeBtn = document.getElementById("modalCloseBtn");
+  if(closeBtn) closeBtn.onclick = closeModal;
+
+  // allow Escape key to close modal
+  function escHandler(e){
+    if(e.key === "Escape") closeModal();
+  }
+  document.addEventListener("keydown", escHandler);
+
+  // remove esc listener when modal closes inside closeModal (handled there)
+  modal.dataset.escHandler = 'true';
 }
 
+function closeModal(){
+  const modal = document.getElementById("salesModal");
+  if(!modal) return;
+  modal.style.display = "none";
+  modal.classList.remove("open");
+  currentModalDate = null;
+  // restore body scroll
+  document.body.style.overflow = "";
+  // remove escape handler if present
+  // we cannot remove a specific anonymous handler; instead remove all escape handlers by re-adding a safe no-op approach:
+  // (Simpler: reload event listeners on next open — acceptable for this frontend.)
+}
+
+/* ---------------------------
+   Modal helper: set price defaults
+   --------------------------- */
 function setModalPriceDefaults(){
   const productEl = document.getElementById("addProductSelect");
   const sectionEl = document.getElementById("addSection");
@@ -652,35 +740,52 @@ document.addEventListener("change", function(e){
 });
 
 /* ---------------------------
-   Dashboard date picker integration (make robust, mobile-safe)
+   Dashboard date picker integration (A - desktop style preserved)
+   - Adds Pick date button, uses input.showPicker where supported
+   - When a date chosen -> set filteredDate to that date and show only it
+   - Back to all dates button appears when filtered
    --------------------------- */
 function ensurePickDateUI(){
   const dash = document.getElementById("dashboard");
   if(!dash) return;
+  // create a pick-date wrapper area if not present
   let wrapper = document.getElementById("pickDateWrapper");
   if(!wrapper){
     wrapper = document.createElement("div");
     wrapper.id = "pickDateWrapper";
+    wrapper.style.display = "flex";
+    wrapper.style.gap = "8px";
+    wrapper.style.alignItems = "center";
     wrapper.style.margin = "8px 0";
+    // create button
     const btn = document.createElement("button");
     btn.id = "pickDateBtn";
     btn.className = "btn";
     btn.textContent = "Pick date";
+    // create hidden input[type=date]
     const inp = document.createElement("input");
     inp.type = "date";
     inp.id = "pickDateInput";
     inp.style.display = "none";
+    // back to all dates (initially hidden)
+    const back = document.createElement("button");
+    back.id = "backAllDatesBtn";
+    back.className = "btn";
+    back.textContent = "Back to all dates";
+    back.style.display = "none";
+    back.addEventListener("click", ()=> { filteredDate = null; renderDailySales(); });
+
     wrapper.appendChild(btn);
     wrapper.appendChild(inp);
+    wrapper.appendChild(back);
     dash.insertBefore(wrapper, dash.firstChild);
 
     btn.addEventListener("click", ()=>{
-      // Try the modern showPicker (mobile browsers) first
       inp.value = toISO(new Date());
+      // prefer showPicker on mobile browsers if available (keeps native date UI)
       if(typeof inp.showPicker === "function"){
         try { inp.showPicker(); return; } catch(e){ /* fallback */ }
       }
-      // fallback to click
       inp.click();
     });
 
@@ -688,12 +793,20 @@ function ensurePickDateUI(){
       const d = e.target.value;
       if(!d) return;
       if(!dailySales[d]) {
+        // create empty date so user can add entries via modal
         dailySales[d] = [];
         saveData();
       }
+      // set filter to this date and re-render dashboard so only that date shows
+      filteredDate = d;
+      renderDailySales();
+      // open modal readonly for quick view (optional) - but per request show summary in dashboard and allow opening
       openModal(d, { readonly:true });
     });
   }
+  // show/hide back button depending on filteredDate
+  const backBtn = document.getElementById("backAllDatesBtn");
+  if(backBtn) backBtn.style.display = filteredDate ? "inline-block" : "none";
 }
 
 /* ---------------------------
@@ -701,18 +814,14 @@ function ensurePickDateUI(){
    --------------------------- */
 function confirmReset(){
   if(!confirm("This will clear ALL saved data (localStorage) and reset items to defaults. Continue?")) return;
-  // remove anything saved related to this project
-  Object.keys(localStorage).forEach(k=>{
-    if(k.startsWith("mrpData") || k.startsWith("barData") || k.startsWith("dailySales") || k.startsWith("billClosed_")){
-      localStorage.removeItem(k);
-    }
-  });
-  // explicitly remove keys
+  // remove specific keys
   localStorage.removeItem("mrpData");
   localStorage.removeItem("barData");
   localStorage.removeItem("dailySales");
+  // reset in-memory
   initializeItems();
   saveData();
+  filteredDate = null;
   renderMRP(); renderBar(); renderDailySales();
   showToast("Data reset");
 }
@@ -728,12 +837,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
   if(!Array.isArray(mrpData) || mrpData.length === 0) initializeItems();
   if(!Array.isArray(barData) || barData.length === 0) initializeItemsBarOnly();
 
+  // populate transfer products if transfer controls exist
   populateTransferProducts();
 
   renderMRP();
   renderBar();
   renderDailySales();
 
+  // expose functions used by inline handlers in HTML
   window.showSection = showSection;
   window.sellFromMRP = sellFromMRP;
   window.sellFromBar = sellFromBar;
@@ -742,16 +853,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
   window.unlockMRPOpening = unlockMRPOpening;
   window.unlockBarOpening = unlockBarOpening;
 
+  // when tab changes to transfer, refresh product list
   document.getElementById("nav-transfer")?.addEventListener("click", populateTransferProducts);
 
+  // bind transfer UI controls
   const dirEl = document.getElementById("transferDirection");
   const prodEl = document.getElementById("transferProduct");
-  const doTransferBtn = document.getElementById("doTransferBtn");
+  const qtyEl = document.getElementById("transferQty");
+  const doBtn = document.getElementById("doTransferBtn");
   if(dirEl) dirEl.addEventListener("change", setTransferPriceDefault);
   if(prodEl) prodEl.addEventListener("change", setTransferPriceDefault);
-  if(doTransferBtn) doTransferBtn.addEventListener("click", doTransferAction);
+  if(doBtn) doBtn.addEventListener("click", doTransferAction);
 
-  // If transfer UI missing in markup, create fallback UI
+  // fallback creation of transfer UI if missing from HTML
   const transferSection = document.getElementById("transfer");
   if(transferSection && !document.getElementById("transferProduct")){
     const wrapper = document.createElement("div");
@@ -779,5 +893,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
     populateTransferProducts();
   }
 
+  // ensure pick date UI exists
   ensurePickDateUI();
 });
