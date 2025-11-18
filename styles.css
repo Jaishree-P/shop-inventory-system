@@ -1,271 +1,268 @@
-:root{
-  --blue:#2f78b4;
-  --blue-darker:#246294;
-  --muted:#f1f6fb;
-  --card:#ffffff;
-  --radius:10px;
-  --text-size:15px;
-  --btn-height:34px;
-  --view-color:#1976d2;
-  --edit-color:#ff9800;
+/* ===============================
+   GLOBAL RESET
+   =============================== */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* base */
-*{ box-sizing:border-box; }
-body{
-  margin:0;
-  font-family:"Poppins",sans-serif;
-  background:#f4f8fc;
-  color:#222;
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  overflow-x: hidden;
 }
 
-/* NAV */
-nav{
-  background:var(--blue);
-  color:white;
-  padding:10px 12px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  white-space:nowrap;
-  overflow-x:auto;
-}
-nav .brand{
-  font-weight:700;
-  padding-right:10px;
-  border-right:1px solid rgba(255,255,255,0.2);
-}
-nav a{
-  padding:8px 12px;
-  color:white;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:600;
-  text-decoration:none;
-}
-nav a.active{ background:var(--blue-darker); }
-
-.tiny-btn{
-  margin-left:auto;
-  background:transparent;
-  border:1px solid rgba(255,255,255,0.15);
-  color:white;
-  border-radius:6px;
-  padding:6px 8px;
-  cursor:pointer;
+/* Prevent zoom when tapping inputs on mobile */
+input, select, button {
+  font-size: 16px;
 }
 
-/* container */
-.container{
-  display:none;
-  padding:14px;
-  max-width:1100px;
-  margin:auto;
-}
-.active-section{ display:block; }
-
-h2{
-  text-align:center;
-  margin:10px 0 18px;
-  color:var(--blue-darker);
+/* ===============================
+   NAVIGATION
+   =============================== */
+nav {
+  background: #222;
+  color: #fff;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap; /* important for mobile */
 }
 
-/* table wrapper */
-.table-wrap{
-  overflow-x:auto;
-  -webkit-overflow-scrolling:touch;
+nav .brand {
+  font-size: 20px;
+  font-weight: bold;
+  margin-right: auto;
 }
 
-/* table desktop */
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:white;
-  table-layout:fixed;
-  min-width:950px;
-  border-radius:10px;
-  overflow:hidden;
-}
-th,td{
-  padding:8px 10px;
-  border-bottom:1px solid #e9eef6;
-  text-align:center;
-  font-size:15px;
-  word-break:break-word;
-}
-th{
-  background:var(--muted);
-  font-weight:700;
+nav a {
+  color: #fff;
+  cursor: pointer;
+  padding: 6px 10px;
+  text-decoration: none;
 }
 
-/* inputs */
-input[type="number"], select{
-  width:100%;
-  padding:6px 8px;
-  border-radius:6px;
-  border:1px solid #d5dce8;
-  font-size:14px;
+nav a.active {
+  background: #444;
+  border-radius: 6px;
 }
 
-/* buttons */
-.btn{
-  padding:6px 12px;
-  border:none;
-  border-radius:8px;
-  color:white;
-  cursor:pointer;
-  font-size:13px;
-  font-weight:600;
-}
-.btn.sell{ background:#2fa85a; }
-.btn.transfer{ background:#2f78b4; }
-.btn.danger{ background:#d9534f; }
-.btn.secondary{ background:#6c757d; }
-.btn.view{ background:#1976d2; }
-.btn.edit{ background:#ff9800; }
-
-.action-cell{
-  display:flex;
-  gap:8px;
-  justify-content:center;
-  align-items:center;
+.tiny-btn {
+  padding: 4px 8px;
+  font-size: 14px;
+  background: red;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
 }
 
-/* transfer panel */
-.transfer-panel{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  flex-wrap:wrap;
-  background:white;
-  padding:12px;
-  border-radius:8px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.03);
+/* ===============================
+   CONTAINERS
+   =============================== */
+.container {
+  display: none;
+  padding: 12px;
 }
 
-/* modal */
-.modal{
-  display:none;
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  backdrop-filter:blur(3px);
-  background:rgba(0,0,0,0.45);
-  justify-content:center;
-  align-items:center;
-  padding:12px;
-  z-index:1000;
-}
-.modal-content{
-  width:100%;
-  max-width:900px;
-  background:white;
-  border-radius:12px;
-  padding:16px;
-  max-height:92vh;
-  overflow:auto;
-}
-.modal-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.close-btn{
-  background:transparent;
-  border:none;
-  font-size:22px;
-  cursor:pointer;
+.active-section {
+  display: block;
 }
 
-/* info text */
-.info,.small-muted{
-  text-align:center;
-  font-size:13px;
-  color:#666;
+/* ===============================
+   TABLES
+   =============================== */
+.table-wrap {
+  overflow-x: auto;     /* allows horizontal scroll */
+  width: 100%;          /* ensures full width */
 }
 
-/* toast */
-.toast{
-  position:fixed;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:18px;
-  background:rgba(0,0,0,0.85);
-  color:white;
-  padding:10px 14px;
-  border-radius:8px;
-  display:none;
-  z-index:2000;
+table {
+  border-collapse: collapse;
+  width: 1200px;        /* FIXED desktop width same on mobile */
+  max-width: none;
+  background: #fff;
 }
 
-/* locking helper */
-.unlock-btn{
-  background:transparent;
-  border:1px dashed #888;
-  color:#333;
-  padding:4px 6px;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:12px;
+table th, table td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;   /* keeps desktop layout */
 }
 
-/* =====================================================
-   MOBILE: keep table as table; horizontal scroll for whole table
-   single header row (no repeating labels)
-   ===================================================== */
+table th {
+  background: #eee;
+}
+
+/* Sticky header for mobile scrolling */
+.table-wrap table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Inputs inside tables */
+table input[type="number"] {
+  width: 70px;
+  padding: 4px;
+}
+
+/* ===============================
+   BUTTONS
+   =============================== */
+.btn {
+  background: #007bff;
+  border: none;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn.sell {
+  background: #06a94d;
+}
+
+.btn.danger {
+  background: #dc3545;
+}
+
+.btn.secondary {
+  background: #6c757d;
+}
+
+.btn:active {
+  opacity: 0.8;
+}
+
+/* ===============================
+   TRANSFER PANEL
+   =============================== */
+.transfer-panel {
+  display: flex;
+  flex-wrap: wrap; /* Mobile friendly */
+  gap: 12px;
+  align-items: center;
+}
+
+.transfer-panel label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+}
+
+.transfer-panel input,
+.transfer-panel select {
+  padding: 6px;
+  font-size: 16px;
+}
+
+/* ===============================
+   MODAL
+   =============================== */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  z-index: 9999;
+}
+
+/* Desktop modal */
+.modal-content {
+  background: #fff;
+  width: 700px;
+  max-height: 90vh;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* MOBILE FULL-SCREEN MODAL */
 @media (max-width: 768px) {
-
-  table, thead, tbody, tr, th, td {
-    display: table;
-  }
-
-  .table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  thead {
-    display: table-header-group;
-  }
-
-  th, td {
-    padding: 10px;
-    font-size: 14px;
-    white-space: nowrap;
-  }
-
-  input[type="number"] {
-    padding: 10px;
-    font-size: 15px;
-  }
-
-  .btn {
-    padding: 8px 12px;
-    font-size: 14px;
+  .modal-content {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
   }
 }
 
-/* extra small phones */
-@media (max-width: 420px) {
-  th, td {
-    font-size: 13px;
-    padding: 8px;
-  }
-  input[type="number"] {
-    font-size: 14px;
-    padding: 8px;
-  }
-  .btn {
-    font-size: 13px;
-    padding: 8px 10px;
-  }
+.modal-header {
+  background: #eee;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
-#pickDateInput {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
+
+.close-btn {
+  font-size: 22px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.modal-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.modal-table th, .modal-table td {
+  border: 1px solid #ccc;
+  padding: 6px;
+  text-align: center;
+}
+
+/* ===============================
+   TOAST
+   =============================== */
+.toast {
+  position: fixed;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #000;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: none;
+  z-index: 99999;
+}
+
+/* ===============================
+   MOBILE IMPROVEMENTS
+   =============================== */
+@media (max-width: 600px) {
+
+  nav {
+    gap: 8px;
+  }
+
+  nav a {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+
+  table input[type="number"] {
+    width: 60px;
+  }
+
+  .btn {
+    padding: 5px 10px;
+    font-size: 14px;
+  }
+
+  .transfer-panel {
+    flex-direction: column; /* stack neatly */
+    align-items: flex-start;
+  }
+
 }
