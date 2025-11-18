@@ -13,13 +13,8 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Prevent zoom when tapping inputs on mobile */
-input, select, button {
-  font-size: 16px;
-}
-
 /* ===============================
-   NAVIGATION
+   NAVIGATION — FIXED ONE LINE
    =============================== */
 nav {
   background: #222;
@@ -28,32 +23,38 @@ nav {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex-wrap: wrap; /* important for mobile */
+  overflow-x: auto;       /* keeps everything in one line */
+  white-space: nowrap;    /* prevents wrapping */
+}
+
+nav::-webkit-scrollbar {
+  height: 4px;
 }
 
 nav .brand {
   font-size: 20px;
   font-weight: bold;
-  margin-right: auto;
+  margin-right: 20px;
 }
 
 nav a {
   color: #fff;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 8px 12px;
   text-decoration: none;
+  border-radius: 6px;
+  transition: 0.2s;
 }
 
 nav a.active {
   background: #444;
-  border-radius: 6px;
 }
 
 .tiny-btn {
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-size: 14px;
   background: red;
-  color: #fff;
+  color: white;
   border: none;
   border-radius: 6px;
 }
@@ -71,42 +72,62 @@ nav a.active {
 }
 
 /* ===============================
+   INPUT BOX UPGRADE (modern look)
+   =============================== */
+input[type="number"],
+input[type="text"],
+select {
+  padding: 6px 8px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: 0.2s;
+  width: 80px;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 6px rgba(0,123,255,0.4);
+}
+
+/* input boxes inside table */
+table input {
+  width: 75px;
+}
+
+/* ===============================
    TABLES
    =============================== */
 .table-wrap {
-  overflow-x: auto;     /* allows horizontal scroll */
-  width: 100%;          /* ensures full width */
+  overflow-x: auto;
+  width: 100%;
 }
 
 table {
   border-collapse: collapse;
-  width: 1200px;        /* FIXED desktop width same on mobile */
-  max-width: none;
-  background: #fff;
+  width: 1200px; /* Desktop style preserved */
+  background: white;
 }
 
 table th, table td {
   border: 1px solid #ddd;
   padding: 6px 8px;
   text-align: center;
-  white-space: nowrap;   /* keeps desktop layout */
+  white-space: nowrap;
 }
 
 table th {
   background: #eee;
+  font-weight: bold;
 }
 
-/* Sticky header for mobile scrolling */
+/* Sticky header */
 .table-wrap table thead th {
   position: sticky;
   top: 0;
   z-index: 10;
-}
-
-/* Inputs inside tables */
-table input[type="number"] {
-  width: 70px;
-  padding: 4px;
 }
 
 /* ===============================
@@ -115,68 +136,54 @@ table input[type="number"] {
 .btn {
   background: #007bff;
   border: none;
-  color: #fff;
+  color: white;
   padding: 6px 12px;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
+  transition: 0.15s;
 }
 
-.btn.sell {
-  background: #06a94d;
+.btn:hover {
+  opacity: 0.9;
 }
 
-.btn.danger {
-  background: #dc3545;
-}
+.btn.sell { background: #06a94d; }
 
-.btn.secondary {
-  background: #6c757d;
-}
+.btn.danger { background: #dc3545; }
 
-.btn:active {
-  opacity: 0.8;
-}
+.btn.secondary { background: #6c757d; }
 
 /* ===============================
    TRANSFER PANEL
    =============================== */
 .transfer-panel {
   display: flex;
-  flex-wrap: wrap; /* Mobile friendly */
-  gap: 12px;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
 }
 
 .transfer-panel label {
   display: flex;
   flex-direction: column;
-  font-size: 14px;
-}
-
-.transfer-panel input,
-.transfer-panel select {
-  padding: 6px;
-  font-size: 16px;
 }
 
 /* ===============================
-   MODAL
+   MODAL — FIXED FOR MOBILE
    =============================== */
 .modal {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.5);
   justify-content: center;
   align-items: center;
-  padding: 12px;
+  padding: 14px;
   z-index: 9999;
 }
 
-/* Desktop modal */
 .modal-content {
-  background: #fff;
+  background: white;
   width: 700px;
   max-height: 90vh;
   border-radius: 10px;
@@ -185,29 +192,38 @@ table input[type="number"] {
   flex-direction: column;
 }
 
-/* MOBILE FULL-SCREEN MODAL */
+/* FULL SCREEN MODAL ON MOBILE */
 @media (max-width: 768px) {
   .modal-content {
     width: 100%;
     height: 100%;
-    max-height: none;
+    max-height: 100%;
     border-radius: 0;
   }
 }
 
 .modal-header {
   background: #eee;
-  padding: 10px;
+  padding: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .close-btn {
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: bold;
   border: none;
   background: none;
   cursor: pointer;
+}
+
+/* modal table area scroll */
+.modal-body,
+#modalBody {
+  overflow-y: auto;
+  flex: 1;
+  padding: 10px;
 }
 
 .modal-table {
@@ -218,7 +234,6 @@ table input[type="number"] {
 .modal-table th, .modal-table td {
   border: 1px solid #ccc;
   padding: 6px;
-  text-align: center;
 }
 
 /* ===============================
@@ -238,31 +253,30 @@ table input[type="number"] {
 }
 
 /* ===============================
-   MOBILE IMPROVEMENTS
+   MOBILE ENHANCEMENTS
    =============================== */
 @media (max-width: 600px) {
 
-  nav {
-    gap: 8px;
-  }
-
   nav a {
-    padding: 4px 8px;
+    padding: 6px 10px;
     font-size: 14px;
   }
 
-  table input[type="number"] {
+  input, select {
+    font-size: 15px;
+  }
+
+  table input {
     width: 60px;
   }
 
   .btn {
-    padding: 5px 10px;
     font-size: 14px;
+    padding: 5px 10px;
   }
 
   .transfer-panel {
-    flex-direction: column; /* stack neatly */
+    flex-direction: column;
     align-items: flex-start;
   }
-
 }
